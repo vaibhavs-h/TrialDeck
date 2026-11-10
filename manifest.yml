@@ -1,0 +1,37 @@
+# Forge manifest. Verify module names/syntax against current Forge docs before changing.
+# NOTE: app.id is created by `forge register` (run once by the app owner).
+modules:
+  jira:issuePanel:
+    - key: deviation-panel
+      title: Protocol Deviation
+      resource: panel
+      render: native # UI Kit
+      resolver:
+        function: resolver
+  jira:globalPage:
+    - key: trial-dashboard
+      title: Trial Dashboard
+      resource: dashboard # Custom UI (React + Vite)
+      resolver:
+        function: resolver
+  # Week 4-5: add rovo:agent, action modules here.
+  function:
+    - key: resolver
+      handler: index.handler
+resources:
+  - key: panel
+    path: src/frontend/index.jsx
+  - key: dashboard
+    path: static/dashboard/dist
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:confluence-content.all
+  content:
+    styles:
+      - unsafe-inline # needed by recharts inline styles; revisit
+app:
+  runtime:
+    name: nodejs22.x
+  # id: ari:cloud:ecosystem::app/...   <- filled in by `forge register`
