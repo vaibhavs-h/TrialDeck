@@ -34,4 +34,4 @@ permissions:
 app:
   runtime:
     name: nodejs22.x
-  # id: ari:cloud:ecosystem::app/...   <- filled in by `forge register`
+  id: ari:cloud:ecosystem::app/9849cd64-8b47-4814-9199-4c4fd1985d15
