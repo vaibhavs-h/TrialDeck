@@ -17,14 +17,14 @@ export default function SiteDeviationsTable({ rows }) {
   const total = TOTAL_SITE_DEVIATIONS + added;
 
   return (
-    <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between">
+    <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between border border-outline-variant/40">
       <div>
         <div className="flex items-center justify-between pb-space-sm mb-space-sm">
           <div className="flex items-center gap-space-xs">
             <Icon name="table_chart" className="text-primary text-[20px]" />
-            <h3 className="font-headline-sm text-headline-sm text-on-surface">Site 02 deviations</h3>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold">Site 02 deviations</h3>
           </div>
-          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-low text-primary uppercase font-bold">
+          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-low text-primary uppercase font-bold border border-outline-variant/40">
             {rows.length} Active Records
           </span>
         </div>
@@ -40,7 +40,7 @@ export default function SiteDeviationsTable({ rows }) {
                 <th className="py-2.5 px-3 text-right">Age</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-outline-variant/20">
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-surface-container-low transition-colors">
                   <td className="py-2.5 px-3">
@@ -56,7 +56,7 @@ export default function SiteDeviationsTable({ rows }) {
                   <td className="py-2.5 px-3">
                     <span className={`font-label-sm text-[11px] px-2 py-0.5 rounded font-bold uppercase inline-block ${statusCls[r.statusTone]}`}>{r.status}</span>
                   </td>
-                  <td className="py-2.5 px-3 text-right font-code text-code text-on-surface">{r.age}</td>
+                  <td className="py-2.5 px-3 text-right font-code text-code text-on-surface font-semibold">{r.age}</td>
                 </tr>
               ))}
             </tbody>
@@ -64,9 +64,11 @@ export default function SiteDeviationsTable({ rows }) {
         </div>
       </div>
 
-      <div className="pt-space-md mt-space-md flex items-center justify-between text-outline font-body-md text-body-md">
+      <div className="pt-space-md mt-space-md flex items-center justify-between text-outline font-body-md text-body-md border-t border-outline-variant/40">
         <span>Showing {rows.length} of {total} site deviations</span>
-        <a href="#" className="font-body-bold text-body-bold text-primary hover:text-primary-container transition-colors">View full Pune log →</a>
+        <a href="#" className="font-body-bold text-body-bold text-primary hover:text-primary-container transition-colors inline-flex items-center gap-1">
+          View full Pune log <Icon name="arrow_forward" className="text-[14px]" />
+        </a>
       </div>
     </div>
   );

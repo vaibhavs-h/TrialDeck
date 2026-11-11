@@ -7,7 +7,7 @@ const priorityCls = {
 };
 const statusCls = {
   'In Progress': 'bg-surface-container-highest text-tertiary',
-  'Pending Review': 'bg-amber-50 text-amber-900',
+  'Pending Review': 'bg-amber-50 text-amber-900 border border-amber-200/50',
   Scheduled: 'bg-surface-container text-outline',
 };
 
@@ -15,14 +15,14 @@ export default function MyTasksCard({ tasks, onToggle }) {
   const remaining = tasks.filter((t) => !t.done).length;
 
   return (
-    <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between">
+    <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between border border-outline-variant/40">
       <div>
         <div className="flex items-center justify-between pb-space-sm mb-space-sm">
           <div className="flex items-center gap-space-xs">
             <Icon name="checklist" className="text-primary text-[20px]" />
-            <h3 className="font-headline-sm text-headline-sm text-on-surface">My tasks — Site 02</h3>
+            <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold">My tasks — Site 02</h3>
           </div>
-          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">
+          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-semibold">
             {remaining} remaining
           </span>
         </div>
@@ -30,7 +30,7 @@ export default function MyTasksCard({ tasks, onToggle }) {
 
         <div className="flex flex-col gap-space-sm">
           {tasks.map((t) => (
-            <div key={t.id} className="p-space-sm rounded bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-space-sm">
+            <div key={t.id} className="p-space-sm rounded bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-space-sm border border-outline-variant/30">
               <input
                 id={t.id}
                 type="checkbox"
@@ -50,8 +50,8 @@ export default function MyTasksCard({ tasks, onToggle }) {
                   <span className="flex items-center gap-1">
                     <Icon name="event" className="text-[14px]" /> Due: {t.due}
                   </span>
-                  <span className={`font-label-sm text-label-sm px-1.5 py-px rounded ${statusCls[t.status]}`}>{t.status}</span>
-                  <a href={`#/deviation/${t.ref}`} className="font-code text-code text-primary hover:underline">{t.ref}</a>
+                  <span className={`font-label-sm text-label-sm px-1.5 py-0.5 rounded font-semibold ${statusCls[t.status]}`}>{t.status}</span>
+                  <a href={`#/deviation/${t.ref}`} className="font-code text-code text-primary font-medium hover:underline">{t.ref}</a>
                 </div>
               </div>
             </div>
@@ -59,7 +59,7 @@ export default function MyTasksCard({ tasks, onToggle }) {
         </div>
       </div>
 
-      <div className="pt-space-md mt-space-md">
+      <div className="pt-space-md mt-space-md border-t border-outline-variant/40">
         <a href="#" className="font-body-bold text-body-bold text-primary hover:text-primary-container inline-flex items-center gap-1 transition-colors">
           View all site tasks in Jira
           <Icon name="open_in_new" className="text-[16px]" />

@@ -1,7 +1,7 @@
 const topNav = ['Your work', 'Projects', 'Filters', 'Dashboards', 'Apps'];
 const subNav = ['Overview', 'Deviations', 'CAPA Tracker', 'Site Directory', 'Reports', 'Settings'];
 const sideNav = [
-  { icon: 'dashboard', label: 'Operational Summary', active: true },
+  { icon: 'dashboard', label: 'Operational Summary' },
   { icon: 'warning', label: 'Protocol Deviations' },
   { icon: 'assignment_turned_in', label: 'CAPA Register' },
   { icon: 'local_hospital', label: 'Trial Sites' },
@@ -15,7 +15,7 @@ const Icon = ({ name, className = '' }) => (
 const iconBtn =
   'p-space-xs text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded transition-colors flex items-center justify-center';
 
-export default function Shell({ children }) {
+export default function Shell({ children, activeSub = 'Overview', activeSide = 'Operational Summary' }) {
   return (
     <>
       <div className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-surface-container-lowest border-b border-outline-variant">
@@ -86,7 +86,7 @@ export default function Shell({ children }) {
             </div>
             <nav className="flex items-center gap-space-lg h-12">
               {subNav.map((item) => {
-                const active = item === 'Overview';
+                const active = item === activeSub;
                 return (
                   <a
                     key={item}
@@ -116,7 +116,7 @@ export default function Shell({ children }) {
           <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">Operations Scope</span>
         </div>
         <nav className="flex flex-col gap-space-xs">
-          {sideNav.map(({ icon, label, active }) => (
+          {sideNav.map((item) => ({ ...item, active: item.label === activeSide })).map(({ icon, label, active }) => (
             <a
               key={label}
               href="#"

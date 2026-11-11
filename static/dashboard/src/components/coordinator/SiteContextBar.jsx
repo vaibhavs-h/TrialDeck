@@ -3,7 +3,7 @@ import { site } from './coordinatorData.js';
 
 export default function SiteContextBar({ onReport }) {
   return (
-    <section className="w-full bg-surface-container-lowest rounded-lg shadow-sm mb-space-md p-space-md">
+    <section className="w-full bg-surface-container-lowest rounded-lg shadow-sm mb-space-md p-space-md border border-outline-variant/40">
       <div className="flex flex-wrap items-center justify-between gap-space-md">
         <div className="flex items-center gap-space-md flex-wrap">
           <div className="flex items-center gap-space-sm">
@@ -25,7 +25,7 @@ export default function SiteContextBar({ onReport }) {
             <span className="font-label-sm text-label-sm text-outline ml-1 uppercase">{site.institution}</span>
           </div>
 
-          <button type="button" className="h-8 px-2.5 bg-surface-container-low hover:bg-surface-container-high rounded text-on-surface font-body-md text-body-md flex items-center gap-space-xs transition-colors">
+          <button type="button" className="h-8 px-2.5 bg-surface-container-low hover:bg-surface-container-high rounded text-on-surface font-body-md text-body-md flex items-center gap-space-xs transition-colors border border-outline-variant/60">
             <Icon name="calendar_today" className="text-[16px] text-outline" />
             <span>Last 90 days</span>
             <Icon name="arrow_drop_down" className="text-[16px] text-outline" />
@@ -33,7 +33,7 @@ export default function SiteContextBar({ onReport }) {
         </div>
 
         <div className="flex items-center gap-space-sm">
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-secondary-container text-on-surface rounded font-label-sm text-label-sm uppercase tracking-wider">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-secondary-container text-on-surface rounded font-label-sm text-label-sm uppercase tracking-wider font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             {site.protocolBadge}
           </div>

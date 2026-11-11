@@ -19,15 +19,15 @@ export default function SiteCoordinatorPage() {
   const toggleTask = (id) =>
     setTasks((list) => list.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
 
+  // form = { subjectId, protocolVersion, category, severity: 'MAJOR' | 'MINOR', dateDetected, description }
   const addDeviation = (form) => {
-    const major = form.severity === 'major';
     const nextNumber = 121 + (deviations.length - initialDeviations.length);
     setDeviations((list) => [
       {
         id: `DEV-${nextNumber}`,
         subject: form.subjectId.trim().toUpperCase(),
-        severity: major ? 'MAJOR' : 'MINOR',
-        category: major ? 'GCP Safety / Consent' : 'Procedural Variance',
+        severity: form.severity,
+        category: form.category,
         status: 'Pending CRA',
         statusTone: 'grey',
         age: '0d',
