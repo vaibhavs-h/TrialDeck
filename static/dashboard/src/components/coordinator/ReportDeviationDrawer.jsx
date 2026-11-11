@@ -1,32 +1,31 @@
 import { useEffect, useState } from 'react';
 import Icon from '../Icon.jsx';
-import { site } from './coordinatorData.js';
+import { site, protocolVersions, deviationCategories } from './coordinatorData.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const emptyForm = () => ({
   subjectId: '',
-  protocolVersion: 'v2.2 (Amendment 3)',
-  severity: 'major',
+  protocolVersion: protocolVersions[0],
+  category: deviationCategories[0].value,
   dateDetected: today(),
   description: '',
-  notifyPI: true,
 });
 
-const inputCls =
-  'w-full bg-surface-container-lowest rounded text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container transition-all border border-outline-variant';
+const fieldCls =
+  'w-full bg-surface-container-lowest border border-outline-variant rounded text-on-surface focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all';
 
-const classes = [
-  { value: 'major', badge: 'MAJOR', badgeCls: 'bg-error-container text-on-error-container', title: 'GCP Safety / Consent', text: 'Direct risk to participant safety or trial integrity' },
-  { value: 'minor', badge: 'MINOR', badgeCls: 'bg-amber-100 text-amber-900', title: 'Procedural Variance', text: 'Administrative or window scheduling deviations' },
-];
+const severityBadge = {
+  MAJOR: 'bg-error-container text-on-error-container',
+  MINOR: 'bg-amber-100 text-amber-900',
+};
 
 export default function ReportDeviationDrawer({ open, onClose, onSubmit }) {
   const [form, setForm] = useState(emptyForm);
   const [touched, setTouched] = useState(false);
 
-  const set = (key) => (e) =>
-    setForm((f) => ({ ...f, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
+  const category = deviationCategories.find((c) => c.value === form.category) ?? deviationCategories[0];
   const subjectError = touched && !form.subjectId.trim();
   const descError = touched && !form.description.trim();
 
@@ -40,133 +39,163 @@ export default function ReportDeviationDrawer({ open, onClose, onSubmit }) {
   const submit = () => {
     setTouched(true);
     if (!form.subjectId.trim() || !form.description.trim()) return;
-    onSubmit(form);
+    onSubmit({ ...form, severity: category.severity });
     setForm(emptyForm());
     setTouched(false);
   };
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Scrim */}
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 bg-inverse-surface/40 z-[60] transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-[#091E42]/40 backdrop-blur-[1px] z-[60] transition-opacity duration-200 ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       />
 
       {/* Drawer */}
-      <div
+      <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Report protocol deviation"
+        aria-label="Report deviation panel"
         aria-hidden={!open}
-        className={`fixed top-0 right-0 h-full w-full sm:w-[480px] bg-surface-container-lowest shadow-2xl z-[60] transform transition-transform duration-300 ease-in-out flex flex-col justify-between ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[500px] bg-surface-container-lowest shadow-2xl z-[60] flex flex-col justify-between border-l border-outline-variant transform transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-space-lg bg-surface-container-low">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-space-xs">
-              <div className="w-6 h-6 rounded bg-primary-container text-on-primary flex items-center justify-center">
-                <Icon name="assignment_add" className="text-[16px]" />
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-outline-variant bg-surface-container-lowest">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+                <Icon name="assignment_add" className="text-[20px]" />
               </div>
-              <h2 className="font-headline-md text-headline-md text-on-surface">Report Protocol Deviation</h2>
+              <div>
+                <h2 className="font-headline-md text-[18px] leading-6 font-bold text-on-surface">Report deviation</h2>
+                <p className="font-body-md text-outline mt-0.5 text-[12px] leading-4">
+                  Log a clinical trial deviation for Jira triage and regulatory audit.
+                </p>
+              </div>
             </div>
-            <button type="button" aria-label="Close form" onClick={onClose} className="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors">
+            <button type="button" aria-label="Close modal" onClick={onClose} className="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors ml-2">
               <Icon name="close" className="text-[20px]" />
             </button>
           </div>
-          <p className="font-body-md text-body-md text-outline mt-1">Submit a new deviation report to the TrialDeck compliance log and Jira.</p>
         </div>
 
-        <div className="p-space-lg flex-1 overflow-y-auto flex flex-col gap-space-md">
-          {/* Locked site */}
+        {/* Body */}
+        <div className="px-6 py-5 flex-1 overflow-y-auto flex flex-col gap-4 bg-surface-container-lowest">
+          {/* Site (locked) */}
           <div>
-            <label className="block font-label-md text-label-md text-on-surface mb-1">Assigned Clinical Trial Site</label>
-            <div className="relative flex items-center">
-              <input readOnly value={site.lockedSiteLabel} className="w-full h-8 pl-8 pr-3 bg-surface-container-high text-on-surface-variant rounded font-body-md text-body-md cursor-not-allowed" />
-              <Icon name="lock" className="text-outline text-[16px] absolute left-2.5" />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block font-label-md text-label-md text-on-surface">Site</label>
+              <span className="font-label-sm text-[10px] px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-bold uppercase tracking-wider">Assigned Site</span>
             </div>
-            <span className="font-label-sm text-[10px] text-outline mt-1 block">Locked to your authenticated coordinator site</span>
+            <div className="relative flex items-center">
+              <Icon name="lock" className="text-outline text-[16px] absolute left-3 pointer-events-none" />
+              <input readOnly value={site.lockedSiteLabel} className="w-full h-9 pl-9 pr-3 bg-surface-container-low border border-outline-variant text-on-surface-variant rounded font-body-md text-body-md cursor-not-allowed select-none font-medium" />
+            </div>
           </div>
 
-          {/* Subject */}
+          {/* Subject ID */}
           <div>
-            <label htmlFor="subject-id" className="block font-label-md text-label-md text-on-surface mb-1">
-              Subject Pseudonym ID <span className="text-error">*</span>
+            <label htmlFor="form-subject-id" className="block font-label-md text-label-md text-on-surface mb-1.5">
+              Subject ID <span className="text-error">*</span>
             </label>
-            <input id="subject-id" type="text" placeholder="e.g. SUBJ-0105" value={form.subjectId} onChange={set('subjectId')}
-              className={`${inputCls} h-8 px-3 font-code text-code ${subjectError ? 'border-error' : ''}`} />
+            <input
+              id="form-subject-id" type="text" placeholder="e.g. SUBJ-0058"
+              value={form.subjectId} onChange={set('subjectId')}
+              className={`${fieldCls} h-9 px-3 font-code text-code font-semibold ${subjectError ? 'border-error' : ''}`}
+            />
             {subjectError
-              ? <span className="font-label-sm text-[10px] text-error mt-1 block">Enter the subject pseudonym ID.</span>
-              : <span className="font-label-sm text-[10px] text-outline mt-1 block">Never input real participant patient names or direct identifiers</span>}
+              ? <span className="font-body-md text-[11px] text-error mt-1 block">Enter the subject ID.</span>
+              : <span className="font-body-md text-[11px] text-outline mt-1 block">Pseudonymized trial subject code</span>}
           </div>
 
           {/* Protocol version */}
           <div>
-            <label htmlFor="protocol-version" className="block font-label-md text-label-md text-on-surface mb-1">Protocol Version</label>
-            <select id="protocol-version" value={form.protocolVersion} onChange={set('protocolVersion')} className={`${inputCls} h-8 px-2.5 font-body-md text-body-md`}>
-              <option>v2.2 (Amendment 3)</option>
-              <option>v2.1 (Amendment 2)</option>
-              <option>v2.0 (Baseline)</option>
-            </select>
-          </div>
-
-          {/* Classification */}
-          <div>
-            <span className="block font-label-md text-label-md text-on-surface mb-1.5">Deviation Classification</span>
-            <div className="grid grid-cols-2 gap-space-sm">
-              {classes.map((c) => (
-                <label key={c.value} className="p-2.5 rounded bg-surface-container-low hover:bg-surface-container cursor-pointer flex flex-col gap-1 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className={`font-label-sm text-label-sm px-1.5 py-0.5 rounded font-bold uppercase ${c.badgeCls}`}>{c.badge}</span>
-                    <input type="radio" name="severity" value={c.value} checked={form.severity === c.value} onChange={set('severity')} className="accent-primary" />
-                  </div>
-                  <span className="font-body-md text-[11px] text-on-surface font-semibold mt-1">{c.title}</span>
-                  <span className="font-body-md text-[10px] text-outline">{c.text}</span>
-                </label>
-              ))}
+            <label htmlFor="form-protocol-version" className="block font-label-md text-label-md text-on-surface mb-1.5">
+              Protocol Version <span className="text-error">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <select id="form-protocol-version" value={form.protocolVersion} onChange={set('protocolVersion')}
+                className={`${fieldCls} h-9 pl-3 pr-8 font-body-md text-body-md appearance-none cursor-pointer`}>
+                {protocolVersions.map((v) => <option key={v}>{v}</option>)}
+              </select>
+              <Icon name="expand_more" className="text-outline text-[18px] absolute right-2.5 pointer-events-none" />
             </div>
           </div>
 
-          {/* Date */}
+          {/* Category */}
           <div>
-            <label htmlFor="date-detected" className="block font-label-md text-label-md text-on-surface mb-1">Date Detected</label>
-            <input id="date-detected" type="date" value={form.dateDetected} onChange={set('dateDetected')} className={`${inputCls} h-8 px-3 font-body-md text-body-md`} />
+            <label htmlFor="form-category" className="block font-label-md text-label-md text-on-surface mb-1.5">
+              Category <span className="text-error">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <select id="form-category" value={form.category} onChange={set('category')}
+                className={`${fieldCls} h-9 pl-3 pr-8 font-body-md text-body-md appearance-none cursor-pointer`}>
+                {deviationCategories.map((c) => <option key={c.value} value={c.value}>{c.option}</option>)}
+              </select>
+              <Icon name="expand_more" className="text-outline text-[18px] absolute right-2.5 pointer-events-none" />
+            </div>
+            <div className="mt-2 p-2.5 bg-surface-container-low rounded border border-outline-variant/60 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`font-label-sm text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${severityBadge[category.severity]}`}>
+                  {category.severity}
+                </span>
+                <span className="font-body-bold text-[12px] text-on-surface">{category.value}</span>
+              </div>
+              <Icon name="check_circle" className="text-primary text-[18px]" />
+            </div>
+          </div>
+
+          {/* Date detected */}
+          <div>
+            <label htmlFor="form-date-detected" className="block font-label-md text-label-md text-on-surface mb-1.5">
+              Date detected <span className="text-error">*</span>
+            </label>
+            <input id="form-date-detected" type="date" value={form.dateDetected} onChange={set('dateDetected')}
+              className={`${fieldCls} h-9 px-3 font-body-md text-body-md`} />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="deviation-desc" className="block font-label-md text-label-md text-on-surface mb-1">
-              Clinical Description &amp; Immediate Corrective Steps <span className="text-error">*</span>
+            <label htmlFor="form-deviation-desc" className="block font-label-md text-label-md text-on-surface mb-1.5">
+              Description <span className="text-error">*</span>
             </label>
-            <textarea id="deviation-desc" rows={4} value={form.description} onChange={set('description')}
-              placeholder="Describe the deviation, clinical circumstances, and immediate corrective steps taken..."
-              className={`${inputCls} p-2.5 font-body-md text-body-md placeholder:text-outline ${descError ? 'border-error' : ''}`} />
-            {descError && <span className="font-label-sm text-[10px] text-error mt-1 block">Add a description and the corrective steps taken.</span>}
+            <textarea
+              id="form-deviation-desc" rows={3}
+              placeholder="Describe the deviation, circumstances, and any immediate actions taken..."
+              value={form.description} onChange={set('description')}
+              className={`${fieldCls} p-3 font-body-md text-body-md placeholder:text-outline leading-5 ${descError ? 'border-error' : ''}`}
+            />
+            {descError
+              ? <span className="font-body-md text-[11px] text-error mt-1 block">Add a description of the deviation.</span>
+              : <span className="font-body-md text-[11px] text-outline mt-1 block">Detailed clinical circumstances and immediate mitigations</span>}
           </div>
 
-          {/* PI notify */}
-          <div className="p-2.5 rounded bg-amber-50 flex items-start gap-space-sm">
-            <input id="pi-notify" type="checkbox" checked={form.notifyPI} onChange={set('notifyPI')} className="mt-0.5 w-4 h-4 rounded text-primary accent-primary cursor-pointer" />
-            <label htmlFor="pi-notify" className="font-body-md text-body-md text-amber-950 cursor-pointer">
-              <strong className="font-body-bold text-body-bold">Flag for expedited Principal Investigator notification</strong>
-              <span className="block text-[11px] text-amber-800 mt-0.5">Triggers high-priority SMS and email alerts to {site.piName} (PI, Pune).</span>
-            </label>
+          {/* Compliance notice */}
+          <div className="p-2.5 rounded bg-surface-container-low border border-outline-variant/50 flex items-start gap-2.5">
+            <Icon name="verified_user" className="text-primary text-[18px] shrink-0 mt-0.5" />
+            <p className="font-body-md text-[11px] text-on-surface-variant leading-4">
+              Reporting generates an audited Jira issue linkable to eCRF data and notifies the Lead Study Monitor for Site 02.
+            </p>
           </div>
         </div>
 
-        <div className="p-space-md bg-surface-container-low flex items-center justify-end gap-space-sm">
-          <button type="button" onClick={onClose} className="h-8 px-3.5 bg-surface-container hover:bg-surface-container-high rounded text-on-surface font-body-bold text-body-bold transition-colors">
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-outline-variant bg-surface-container-lowest flex items-center justify-end gap-2.5">
+          <button type="button" onClick={onClose} className="h-9 px-4 bg-surface-container hover:bg-surface-container-high rounded text-on-surface font-body-bold text-body-bold transition-colors cursor-pointer">
             Cancel
           </button>
-          <button type="button" onClick={submit} className="h-8 px-4 bg-primary-container hover:bg-primary text-on-primary rounded font-body-bold text-body-bold shadow-sm transition-colors">
-            Submit report
+          <button type="button" onClick={submit} className="h-9 px-4 bg-primary-container hover:bg-primary text-on-primary rounded font-body-bold text-body-bold shadow-sm transition-colors cursor-pointer flex items-center gap-1.5">
+            <span>Submit deviation</span>
+            <Icon name="arrow_forward" className="text-[16px]" />
           </button>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

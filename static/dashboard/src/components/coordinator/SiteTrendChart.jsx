@@ -14,10 +14,10 @@ export default function SiteTrendChart() {
   const last = pts[pts.length - 1];
 
   return (
-    <section className="w-full bg-surface-container-lowest rounded-lg shadow-sm p-space-md mb-space-md">
+    <section className="w-full bg-surface-container-lowest rounded-lg shadow-sm p-space-md mb-space-md border border-outline-variant/40">
       <div className="flex flex-wrap items-center justify-between pb-space-sm mb-space-md">
         <div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Deviations over time at Site 02</h2>
+          <h2 className="font-headline-md text-headline-md text-on-surface font-semibold">Deviations over time at Site 02</h2>
           <p className="font-body-md text-body-md text-outline">Weekly intake rate and open volume across Weeks 1 – 12</p>
         </div>
         <div className="flex items-center gap-space-md mt-2 sm:mt-0">
@@ -29,7 +29,7 @@ export default function SiteTrendChart() {
             <span className="w-3 h-0.5 bg-outline-variant inline-block border-t border-dashed" />
             <span>Target baseline (≤ {trendConfig.target})</span>
           </div>
-          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-low text-primary uppercase font-bold">
+          <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-low text-primary uppercase font-bold border border-outline-variant/40">
             W{spike.week} Spike: +{spikeDelta}
           </span>
         </div>

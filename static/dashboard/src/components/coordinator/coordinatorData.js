@@ -2,7 +2,7 @@ export const site = {
   title: 'Site 02 — Pune',
   institution: 'Tata Memorial Ext.',
   protocolBadge: 'PHASE III PROTOCOL • ONC-101',
-  lockedSiteLabel: 'Site 02 - Memorial Oncology (Pune)',
+  lockedSiteLabel: 'Site 02 - Pune',
   piName: 'Dr. V. Sen',
 };
 
@@ -41,3 +41,15 @@ export const initialDeviations = [
 ];
 
 export const TOTAL_SITE_DEVIATIONS = 6; // 4 shown + 2 older ones
+
+export const protocolVersions = [
+  'Protocol v2.2 (Amendment 3)',
+  'Protocol v2.1 (Amendment 2)',
+  'Protocol v2.0 (Baseline)',
+];
+
+export const deviationCategories = [
+  { value: 'Informed Consent / Safety', option: 'Informed Consent / Safety (MAJOR)', severity: 'MAJOR' },
+  { value: 'Window Exceeded', option: 'Window Exceeded', severity: 'MINOR' },
+  { value: 'Investigational Product', option: 'Investigational Product', severity: 'MINOR' },
+];

@@ -26,8 +26,8 @@ function DashboardPage() {
 }
 
 // Tiny hash router
-//   #/                 -> manager dashboard
-//   #/coordinator      -> site coordinator dashboard
+//   #/                  -> manager dashboard
+//   #/coordinator       -> site coordinator dashboard
 //   #/deviation/DEV-112 -> deviation detail page
 function useHash() {
   const [hash, setHash] = useState(window.location.hash);
@@ -47,9 +47,16 @@ export default function App() {
     if (detail) window.scrollTo(0, 0);
   }, [detail?.[1]]);
 
-  let page = <DashboardPage />;
-  if (detail) page = <DeviationDetailPage issueId={detail[1]} />;
-  else if (hash === '#/coordinator') page = <SiteCoordinatorPage />;
-
-  return <Shell>{page}</Shell>;
+  if (detail) {
+    return <Shell><DeviationDetailPage issueId={detail[1]} /></Shell>;
+  }
+  if (hash === '#/coordinator') {
+    // Coordinator page highlights "Deviations" / "Protocol Deviations" in the nav
+    return (
+      <Shell activeSub="Deviations" activeSide="Protocol Deviations">
+        <SiteCoordinatorPage />
+      </Shell>
+    );
+  }
+  return <Shell><DashboardPage /></Shell>;
 }

@@ -3,9 +3,9 @@ import { kpis } from './coordinatorData.js';
 
 function Card({ title, icon, iconColor, value, valueColor = 'text-on-surface', badge, badgeCls, note }) {
   return (
-    <div className="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between">
+    <div className="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between border border-outline-variant/40">
       <div className="flex items-center justify-between">
-        <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">{title}</span>
+        <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold">{title}</span>
         <Icon name={icon} className={`${iconColor} text-[18px]`} />
       </div>
       <div className="flex items-baseline justify-between mt-3">
@@ -23,7 +23,7 @@ export default function CoordinatorKpiRow({ pendingTasks, highPriority }) {
       <Card
         title="Open at my site" icon="clinical_notes" iconColor="text-outline"
         value={kpis.openAtSite.value}
-        badge={kpis.openAtSite.delta} badgeCls="bg-surface-container-high text-on-surface-variant"
+        badge={kpis.openAtSite.delta} badgeCls="bg-surface-container-high text-on-surface-variant font-semibold"
         note={kpis.openAtSite.note}
       />
       <Card
