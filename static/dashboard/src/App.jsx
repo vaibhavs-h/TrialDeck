@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import Shell from './components/Shell.jsx';
-import DashboardHeader from './components/Dashboardheader.jsx';
+import DashboardHeader from './components/Dashboardheader.jsx'; // must match your file name exactly
 import KpiRow from './components/KpiRow.jsx';
 import InsightBanner from './components/InsightBanner.jsx';
 import DeviationsBySiteChart from './components/DeviationsBySiteChart.jsx';
 import TrendChart from './components/TrendChart.jsx';
 import OverdueCapaTable from './components/OverdueCapaTable.jsx';
 import DeviationDetailPage from './pages/DeviationDetailPage.jsx';
+import SiteCoordinatorPage from './pages/SiteCoordinatorPage.jsx';
 
+// Study manager dashboard
 function DashboardPage() {
   return (
     <div className="flex flex-col w-full pb-12">
@@ -23,7 +25,10 @@ function DashboardPage() {
   );
 }
 
-// Tiny hash router: "#/deviation/DEV-112" -> detail page, anything else -> dashboard
+// Tiny hash router
+//   #/                 -> manager dashboard
+//   #/coordinator      -> site coordinator dashboard
+//   #/deviation/DEV-112 -> deviation detail page
 function useHash() {
   const [hash, setHash] = useState(window.location.hash);
   useEffect(() => {
@@ -36,15 +41,15 @@ function useHash() {
 
 export default function App() {
   const hash = useHash();
-  const match = hash.match(/^#\/deviation\/([\w-]+)/);
+  const detail = hash.match(/^#\/deviation\/([\w-]+)/);
 
   useEffect(() => {
-    if (match) window.scrollTo(0, 0);
-  }, [match?.[1]]);
+    if (detail) window.scrollTo(0, 0);
+  }, [detail?.[1]]);
 
-  return (
-    <Shell>
-      {match ? <DeviationDetailPage issueId={match[1]} /> : <DashboardPage />}
-    </Shell>
-  );
+  let page = <DashboardPage />;
+  if (detail) page = <DeviationDetailPage issueId={detail[1]} />;
+  else if (hash === '#/coordinator') page = <SiteCoordinatorPage />;
+
+  return <Shell>{page}</Shell>;
 }
