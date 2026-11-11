@@ -1,32 +1,24 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { useDashboard } from './hooks/useDashboard.js';
+import Shell from './components/Shell.jsx';
+import DashboardHeader from './components/DashboardHeader.jsx';
 import KpiRow from './components/KpiRow.jsx';
+import InsightBanner from './components/InsightBanner.jsx';
+import DeviationsBySiteChart from './components/DeviationsBySiteChart.jsx';
+import TrendChart from './components/TrendChart.jsx';
 import OverdueCapaTable from './components/OverdueCapaTable.jsx';
 
 export default function App() {
-  const { data, loading, error } = useDashboard();
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p role="alert">Could not load the dashboard: {error}</p>;
-  if (!data) return <p>No data.</p>;
-
   return (
-    <div style={{ padding: 16 }}>
-      <KpiRow kpis={data.kpis} />
-      <h3>Deviations by site</h3>
-      {data.bySite.length === 0 ? (
-        <p>No deviations logged yet.</p>
-      ) : (
-        <BarChart width={500} height={260} data={data.bySite}>
-          <XAxis dataKey="site" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="count" />
-        </BarChart>
-      )}
-      <h3>Overdue CAPAs</h3>
-      <OverdueCapaTable rows={data.overdueCapas} />
-    </div>
+    <Shell>
+      <div className="flex flex-col w-full pb-12">
+        <DashboardHeader />
+        <KpiRow />
+        <InsightBanner />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <DeviationsBySiteChart />
+          <TrendChart />
+        </div>
+        <OverdueCapaTable />
+      </div>
+    </Shell>
   );
 }
