@@ -6,7 +6,8 @@
   "scripts": {
     "dev:dashboard": "vite",
     "build:dashboard": "vite build",
-    "deploy": "npm run build:dashboard && forge deploy"
+    "deploy": "npm run build:dashboard && forge deploy",
+    "deploy:prod": "npm run build:dashboard && forge deploy -e production"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
