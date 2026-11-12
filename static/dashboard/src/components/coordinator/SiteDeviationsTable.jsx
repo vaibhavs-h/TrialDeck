@@ -17,7 +17,7 @@ export default function SiteDeviationsTable({ rows }) {
   const total = TOTAL_SITE_DEVIATIONS + added;
 
   return (
-    <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between border border-outline-variant/40">
+    <div id="site-deviations" className="lg:col-span-6 bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col justify-between border border-outline-variant/40">
       <div>
         <div className="flex items-center justify-between pb-space-sm mb-space-sm">
           <div className="flex items-center gap-space-xs">
@@ -66,7 +66,7 @@ export default function SiteDeviationsTable({ rows }) {
 
       <div className="pt-space-md mt-space-md flex items-center justify-between text-outline font-body-md text-body-md border-t border-outline-variant/40">
         <span>Showing {rows.length} of {total} site deviations</span>
-        <a href="#" className="font-body-bold text-body-bold text-primary hover:text-primary-container transition-colors inline-flex items-center gap-1">
+        <a href="#/sites" className="font-body-bold text-body-bold text-primary hover:text-primary-container transition-colors inline-flex items-center gap-1">
           View full Pune log <Icon name="arrow_forward" className="text-[14px]" />
         </a>
       </div>

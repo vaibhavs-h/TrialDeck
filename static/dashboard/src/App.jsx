@@ -8,6 +8,7 @@ import TrendChart from './components/TrendChart.jsx';
 import OverdueCapaTable from './components/OverdueCapaTable.jsx';
 import DeviationDetailPage from './pages/DeviationDetailPage.jsx';
 import SiteCoordinatorPage from './pages/SiteCoordinatorPage.jsx';
+import AmendmentPage from '../../../amendment/static/dashboard/src/components/AmendmentPage.jsx';
 
 // Study manager dashboard
 function DashboardPage() {
@@ -29,6 +30,7 @@ function DashboardPage() {
 //   #/                  -> manager dashboard
 //   #/coordinator       -> site coordinator dashboard
 //   #/deviation/DEV-112 -> deviation detail page
+//   #/amendment         -> protocol amendment page
 function useHash() {
   const [hash, setHash] = useState(window.location.hash);
   useEffect(() => {
@@ -41,20 +43,44 @@ function useHash() {
 
 export default function App() {
   const hash = useHash();
-  const detail = hash.match(/^#\/deviation\/([\w-]+)/);
+  const detail = hash.match(/^#\/deviation\/([\w-]+)$/);
 
   useEffect(() => {
     if (detail) window.scrollTo(0, 0);
-  }, [detail?.[1]]);
+    else if (hash === '#/capa') document.getElementById('table-section')?.scrollIntoView();
+    else if (hash === '#/sites') document.getElementById('site-deviations')?.scrollIntoView();
+    else if (hash === '#/tasks') document.getElementById('tasks-section')?.scrollIntoView();
+    else window.scrollTo(0, 0);
+  }, [hash, detail?.[1]]);
 
   if (detail) {
-    return <Shell><DeviationDetailPage issueId={detail[1]} /></Shell>;
-  }
-  if (hash === '#/coordinator') {
-    // Coordinator page highlights "Deviations" / "Protocol Deviations" in the nav
     return (
       <Shell activeSub="Deviations" activeSide="Protocol Deviations">
+        <DeviationDetailPage issueId={detail[1]} />
+      </Shell>
+    );
+  }
+  if (hash === '#/coordinator' || hash === '#/sites' || hash === '#/tasks') {
+    return (
+      <Shell
+        activeSub={hash === '#/sites' ? 'Site Directory' : 'Deviations'}
+        activeSide={hash === '#/sites' ? 'Trial Sites' : 'Protocol Deviations'}
+      >
         <SiteCoordinatorPage />
+      </Shell>
+    );
+  }
+  if (hash === '#/amendment') {
+    return (
+      <Shell activeSub="Amendments" activeSide="Protocol Amendments">
+        <AmendmentPage />
+      </Shell>
+    );
+  }
+  if (hash === '#/capa') {
+    return (
+      <Shell activeSub="CAPA Tracker" activeSide="CAPA Register">
+        <DashboardPage />
       </Shell>
     );
   }

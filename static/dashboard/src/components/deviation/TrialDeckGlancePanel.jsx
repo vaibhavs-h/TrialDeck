@@ -9,7 +9,7 @@ const tagTones = {
 
 function SimilarItem({ item }) {
   return (
-    <a href="#" className="group p-2 rounded bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant/60 transition-all flex flex-col gap-1">
+    <a href={`#/deviation/${item.id}`} className="group p-2 rounded bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant/60 transition-all flex flex-col gap-1">
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-1 truncate">
           <span className="font-code text-code text-primary font-semibold group-hover:underline">{item.id}</span>
@@ -124,7 +124,7 @@ export default function TrialDeckGlancePanel() {
             {g.similar.map((s) => <SimilarItem key={s.id} item={s} />)}
           </div>
           <div className="pt-0.5">
-            <a href="#" className="font-body-bold text-body-bold text-primary hover:underline flex items-center gap-1">
+            <a href="#/sites" className="font-body-bold text-body-bold text-primary hover:underline flex items-center gap-1">
               View all {g.similarCount} →
             </a>
           </div>

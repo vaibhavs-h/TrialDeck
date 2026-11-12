@@ -55,10 +55,10 @@ export default function OverdueCapaTable() {
               className="h-8 pl-7 pr-3 w-44 sm:w-56 bg-white border border-[#DFE1E6] rounded-[3px] font-body-md text-body-md text-[#172B4D] placeholder:text-[#6B778C] focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container"
             />
           </div>
-          <button type="button" className="h-8 px-2.5 bg-[#F4F5F7] hover:bg-[#EBECF0] border border-[#DFE1E6] rounded-[3px] font-headline-sm text-headline-sm text-[#172B4D] inline-flex items-center gap-1 shadow-sm">
+          <a href="#/capa" className="h-8 px-2.5 bg-[#F4F5F7] hover:bg-[#EBECF0] border border-[#DFE1E6] rounded-[3px] font-headline-sm text-headline-sm text-[#172B4D] inline-flex items-center gap-1 shadow-sm">
             <Icon name="filter_list" className="text-[16px] text-[#5E6C84]" />
             <span>View All</span>
-          </button>
+          </a>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export default function OverdueCapaTable() {
               return (
                 <tr key={r.id} className="hover:bg-[#F4F5F7] transition-colors group">
                   <td className="px-4 py-3 whitespace-nowrap font-code text-[12px]">
-                    <a href="#" className="text-[#0052CC] font-semibold hover:underline flex items-center gap-1">
+                    <a href={`#/deviation/${r.id}`} className="text-[#0052CC] font-semibold hover:underline flex items-center gap-1">
                       {r.id}
                       <Icon name="open_in_new" className="text-[14px] text-[#6B778C] opacity-0 group-hover:opacity-100" />
                     </a>

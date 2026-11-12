@@ -6,6 +6,7 @@ modules:
       title: Protocol Deviation
       resource: panel
       render: native # UI Kit
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
       resolver:
         function: resolver
   jira:globalPage:
@@ -27,7 +28,7 @@ permissions:
   scopes:
     - read:jira-work
     - write:jira-work
-    - read:confluence-content.all
+    - read:page:confluence
   content:
     styles:
       - unsafe-inline # needed by recharts inline styles; revisit
