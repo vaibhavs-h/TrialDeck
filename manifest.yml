@@ -18,12 +18,12 @@ modules:
   # Week 4-5: add rovo:agent, action modules here.
   function:
     - key: resolver
-      handler: index.handler
+      handler: backend/index.handler
 resources:
   - key: panel
-    path: src/frontend/index.jsx
+    path: frontend/panel/index.jsx
   - key: dashboard
-    path: static/dashboard/dist
+    path: frontend/dashboard/dist
 permissions:
   scopes:
     - read:jira-work

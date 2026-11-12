@@ -1,0 +1,53 @@
+import { useState } from 'react';
+import SiteContextBar from '../components/SiteContextBar.jsx';
+import AmendmentBanner from '../components/AmendmentBanner.jsx';
+import CoordinatorKpiRow from '../components/CoordinatorKpiRow.jsx';
+import SiteTrendChart from '../components/SiteTrendChart.jsx';
+import MyTasksCard from '../components/MyTasksCard.jsx';
+import SiteDeviationsTable from '../components/SiteDeviationsTable.jsx';
+import ReportDeviationDrawer from '../components/ReportDeviationDrawer.jsx';
+import { initialTasks, initialDeviations } from '../data/coordinatorData.js';
+
+export default function SiteCoordinatorPage() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [tasks, setTasks] = useState(initialTasks);
+  const [deviations, setDeviations] = useState(initialDeviations);
+
+  const pending = tasks.filter((t) => !t.done);
+  const highPriority = pending.filter((t) => t.priority === 'High').length;
+
+  const toggleTask = (id) =>
+    setTasks((list) => list.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+
+  // form = { subjectId, protocolVersion, category, severity: 'MAJOR' | 'MINOR', dateDetected, description }
+  const addDeviation = (form) => {
+    const nextNumber = 121 + (deviations.length - initialDeviations.length);
+    setDeviations((list) => [
+      {
+        id: `DEV-${nextNumber}`,
+        subject: form.subjectId.trim().toUpperCase(),
+        severity: form.severity,
+        category: form.category,
+        status: 'Pending CRA',
+        statusTone: 'grey',
+        age: '0d',
+      },
+      ...list,
+    ]);
+    setDrawerOpen(false);
+  };
+
+  return (
+    <div className="flex flex-col w-full pb-space-xl">
+      <SiteContextBar onReport={() => setDrawerOpen(true)} />
+      <AmendmentBanner />
+      <CoordinatorKpiRow pendingTasks={pending.length} highPriority={highPriority} />
+      <SiteTrendChart />
+      <section id="tasks-section" className="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+        <MyTasksCard tasks={tasks} onToggle={toggleTask} />
+        <SiteDeviationsTable rows={deviations} />
+      </section>
+      <ReportDeviationDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSubmit={addDeviation} />
+    </div>
+  );
+}

@@ -4,19 +4,31 @@
   "private": true,
   "description": "Clinical Trial Operations Hub - Forge app for Jira, Confluence and Rovo (Codegeist 2026)",
   "scripts": {
-    "install:all": "npm install && npm --prefix static/dashboard install",
-    "build:dashboard": "npm --prefix static/dashboard run build",
+    "dev:dashboard": "vite",
+    "build:dashboard": "vite build",
     "deploy": "npm run build:dashboard && forge deploy"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@forge/api": "^6.0.0",
     "@forge/bridge": "^5.0.0",
     "@forge/react": "^11.0.0",
     "@forge/resolver": "^1.6.0",
     "diff": "^7.0.0",
-    "react": "^18.2.0"
+    "material-symbols": "^0.49.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.0"
   },
   "engines": {
     "node": ">=22.23.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.4.0"
   }
 }
