@@ -12,7 +12,7 @@ export default function InsightBanner() {
         </p>
       </div>
       <a
-        href="#table-section"
+        href="#/capa"
         className="font-headline-sm text-headline-sm text-[#0052CC] hover:underline font-semibold whitespace-nowrap inline-flex items-center gap-1 self-end sm:self-auto"
       >
         View details →

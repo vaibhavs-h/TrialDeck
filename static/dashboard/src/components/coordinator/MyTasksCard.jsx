@@ -60,7 +60,7 @@ export default function MyTasksCard({ tasks, onToggle }) {
       </div>
 
       <div className="pt-space-md mt-space-md border-t border-outline-variant/40">
-        <a href="#" className="font-body-bold text-body-bold text-primary hover:text-primary-container inline-flex items-center gap-1 transition-colors">
+        <a href="#/tasks" className="font-body-bold text-body-bold text-primary hover:text-primary-container inline-flex items-center gap-1 transition-colors">
           View all site tasks in Jira
           <Icon name="open_in_new" className="text-[16px]" />
         </a>

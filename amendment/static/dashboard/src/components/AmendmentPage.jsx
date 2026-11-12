@@ -19,11 +19,11 @@ export default function AmendmentPage() {
     <div className="flex flex-col w-full pb-24">
       <div className="flex flex-col gap-space-xs mb-space-md">
         <nav aria-label="Breadcrumb" className="flex items-center gap-space-xs text-on-surface-variant font-body-md text-body-md">
-          <a className="hover:text-on-surface transition-colors" href="#">Projects</a>
+          <a className="hover:text-on-surface transition-colors" href="#/">Projects</a>
           <span className="text-outline-variant font-code text-[11px]">/</span>
-          <a className="hover:text-on-surface transition-colors" href="#">TrialDeck (Clinical Operations)</a>
+          <a className="hover:text-on-surface transition-colors" href="#/">TrialDeck (Clinical Operations)</a>
           <span className="text-outline-variant font-code text-[11px]">/</span>
-          <a className="hover:text-on-surface transition-colors" href="#">Protocol Amendments</a>
+          <a className="hover:text-on-surface transition-colors" href="#/amendment">Protocol Amendments</a>
           <span className="text-outline-variant font-code text-[11px]">/</span>
           <span className="text-on-surface font-body-bold text-body-bold">Amendment 3</span>
         </nav>

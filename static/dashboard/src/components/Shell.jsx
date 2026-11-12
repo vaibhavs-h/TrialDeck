@@ -1,11 +1,26 @@
-const topNav = ['Your work', 'Projects', 'Filters', 'Dashboards', 'Apps'];
-const subNav = ['Overview', 'Deviations', 'CAPA Tracker', 'Site Directory', 'Reports', 'Settings'];
+const topNav = [
+  { label: 'Your work', href: '#/' },
+  { label: 'Projects', href: '#/' },
+  { label: 'Filters', href: '#/capa' },
+  { label: 'Dashboards', href: '#/' },
+  { label: 'Apps', href: '#/' },
+];
+const subNav = [
+  { label: 'Overview', href: '#/' },
+  { label: 'Deviations', href: '#/coordinator' },
+  { label: 'CAPA Tracker', href: '#/capa' },
+  { label: 'Site Directory', href: '#/sites' },
+  { label: 'Reports', href: '#/' },
+  { label: 'Amendments', href: '#/amendment' },
+  { label: 'Settings', href: '#/' },
+];
 const sideNav = [
-  { icon: 'dashboard', label: 'Operational Summary' },
-  { icon: 'warning', label: 'Protocol Deviations' },
-  { icon: 'assignment_turned_in', label: 'CAPA Register' },
-  { icon: 'local_hospital', label: 'Trial Sites' },
-  { icon: 'query_stats', label: 'Safety & Compliance' },
+  { icon: 'dashboard', label: 'Operational Summary', href: '#/' },
+  { icon: 'warning', label: 'Protocol Deviations', href: '#/coordinator' },
+  { icon: 'assignment_turned_in', label: 'CAPA Register', href: '#/capa' },
+  { icon: 'local_hospital', label: 'Trial Sites', href: '#/sites' },
+  { icon: 'query_stats', label: 'Safety & Compliance', href: '#/' },
+  { icon: 'description', label: 'Protocol Amendments', href: '#/amendment' },
 ];
 
 const Icon = ({ name, className = '' }) => (
@@ -37,12 +52,12 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
               <span className="text-on-surface-variant font-body-md text-body-md hidden sm:inline">/ Clinical Operations</span>
             </div>
             <nav className="hidden xl:flex items-center gap-space-md ml-space-md">
-              {topNav.map((item) => {
-                const active = item === 'Apps';
+              {topNav.map(({ label, href }) => {
+                const active = label === 'Apps';
                 return (
                   <a
-                    key={item}
-                    href="#"
+                    key={label}
+                    href={href}
                     aria-current={active ? 'page' : undefined}
                     className={`py-4 font-headline-sm text-headline-sm transition-colors ${
                       active
@@ -50,7 +65,7 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
                         : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
-                    {item}
+                    {label}
                   </a>
                 );
               })}
@@ -84,21 +99,21 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
               <Icon name="biotech" className="text-primary text-[18px]" />
               <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface">TrialDeck</span>
             </div>
-            <nav className="flex items-center gap-space-lg h-12">
-              {subNav.map((item) => {
-                const active = item === activeSub;
+            <nav className="flex items-center gap-space-md h-12 overflow-x-auto">
+              {subNav.map(({ label, href }) => {
+                const active = label === activeSub;
                 return (
                   <a
-                    key={item}
-                    href="#"
+                    key={label}
+                    href={href}
                     aria-current={active ? 'page' : undefined}
-                    className={`h-12 flex items-center transition-colors font-headline-sm text-headline-sm ${
+                    className={`h-12 flex items-center whitespace-nowrap transition-colors font-headline-sm text-headline-sm ${
                       active
                         ? 'text-primary border-b-2 border-primary font-bold'
                         : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
-                    {item}
+                    {label}
                   </a>
                 );
               })}
@@ -116,10 +131,10 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
           <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">Operations Scope</span>
         </div>
         <nav className="flex flex-col gap-space-xs">
-          {sideNav.map((item) => ({ ...item, active: item.label === activeSide })).map(({ icon, label, active }) => (
+          {sideNav.map((item) => ({ ...item, active: item.label === activeSide })).map(({ icon, label, href, active }) => (
             <a
               key={label}
-              href="#"
+              href={href}
               aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-space-sm px-space-sm py-2 rounded transition-colors ${
                 active

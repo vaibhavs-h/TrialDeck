@@ -13,7 +13,7 @@ export default function AmendmentBanner() {
             <strong className="font-body-bold text-body-bold">{banner.title}</strong> {banner.message}
           </p>
         </div>
-        <a href="#tasks-section" className="font-body-bold text-body-bold text-primary hover:text-primary-container shrink-0 flex items-center gap-1 transition-colors">
+        <a href="#/tasks" className="font-body-bold text-body-bold text-primary hover:text-primary-container shrink-0 flex items-center gap-1 transition-colors">
           View tasks
           <Icon name="arrow_forward" className="text-[16px]" />
         </a>
