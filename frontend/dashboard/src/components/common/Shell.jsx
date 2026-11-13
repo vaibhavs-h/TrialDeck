@@ -10,17 +10,18 @@ const subNav = [
   { label: 'Deviations', href: '#/coordinator' },
   { label: 'CAPA Tracker', href: '#/capa' },
   { label: 'Site Directory', href: '#/sites' },
-  { label: 'Reports', href: '#/' },
+  { label: 'Reports', href: '#/reports' },
   { label: 'Amendments', href: '#/amendment' },
-  { label: 'Settings', href: '#/' },
+  { label: 'Settings', href: '#/settings' },
 ];
 const sideNav = [
   { icon: 'dashboard', label: 'Operational Summary', href: '#/' },
   { icon: 'warning', label: 'Protocol Deviations', href: '#/coordinator' },
   { icon: 'assignment_turned_in', label: 'CAPA Register', href: '#/capa' },
   { icon: 'local_hospital', label: 'Trial Sites', href: '#/sites' },
-  { icon: 'query_stats', label: 'Safety & Compliance', href: '#/' },
+  { icon: 'query_stats', label: 'Safety & Compliance', href: '#/reports' },
   { icon: 'description', label: 'Protocol Amendments', href: '#/amendment' },
+  { icon: 'settings', label: 'Hub Settings', href: '#/settings' },
 ];
 
 const Icon = ({ name, className = '' }) => (
@@ -120,7 +121,7 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
             </nav>
           </div>
           <span className="font-label-sm text-label-sm uppercase px-2 py-0.5 bg-surface-container-low text-tertiary rounded border border-outline-variant">
-            Phase III Protocol
+            Live Jira Workspace
           </span>
         </div>
       </div>
@@ -148,7 +149,7 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
           ))}
         </nav>
         <div className="mt-auto pt-space-md border-t border-outline-variant px-space-sm flex items-center justify-between text-outline">
-          <span className="font-code text-code">v2.4.0-audit</span>
+          <span className="font-code text-code text-[11px]">CLIN Active</span>
           <Icon name="lock" className="text-[16px]" />
         </div>
       </aside>

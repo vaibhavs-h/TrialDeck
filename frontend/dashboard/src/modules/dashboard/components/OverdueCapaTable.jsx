@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { needsAttention } from '../data/mockData.js';
 
 const Icon = ({ name, className }) => <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 
@@ -13,7 +12,9 @@ const statusTones = {
 
 const severityTones = {
   Major:    'bg-[#FFEBE6] text-[#DE350B] border-[#FFBDAD]',
+  major:    'bg-[#FFEBE6] text-[#DE350B] border-[#FFBDAD]',
   Minor:    'bg-[#FFF0B3] text-[#172B4D] border-[#FFE380]',
+  minor:    'bg-[#FFF0B3] text-[#172B4D] border-[#FFE380]',
   Resolved: 'bg-[#E3FCEF] text-[#006644] border-[#ABF5D1]',
 };
 
@@ -25,14 +26,13 @@ const dueTones = {
 };
 
 const headers = ['ID', 'Site', 'Category / Severity', 'Status', 'CAPA Due', 'Owner', 'Age'];
-const TOTAL_OPEN = 24;
 
-export default function OverdueCapaTable() {
+export default function OverdueCapaTable({ data = [], totalOpen = 0 }) {
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const rows = q
-    ? needsAttention.filter((r) => Object.values(r).join(' ').toLowerCase().includes(q))
-    : needsAttention;
+    ? data.filter((r) => Object.values(r).join(' ').toLowerCase().includes(q))
+    : data;
 
   return (
     <div id="table-section" className="jira-card mt-4 overflow-hidden">
@@ -55,10 +55,6 @@ export default function OverdueCapaTable() {
               className="h-8 pl-7 pr-3 w-44 sm:w-56 bg-white border border-[#DFE1E6] rounded-[3px] font-body-md text-body-md text-[#172B4D] placeholder:text-[#6B778C] focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container"
             />
           </div>
-          <a href="#/capa" className="h-8 px-2.5 bg-[#F4F5F7] hover:bg-[#EBECF0] border border-[#DFE1E6] rounded-[3px] font-headline-sm text-headline-sm text-[#172B4D] inline-flex items-center gap-1 shadow-sm">
-            <Icon name="filter_list" className="text-[16px] text-[#5E6C84]" />
-            <span>View All</span>
-          </a>
         </div>
       </div>
 
@@ -69,30 +65,28 @@ export default function OverdueCapaTable() {
               {headers.map((h) => (
                 <th key={h} className="px-4 py-3 font-label-sm text-label-sm uppercase tracking-wider text-[#6B778C]">{h}</th>
               ))}
-              <th className="px-4 py-3 font-label-sm text-label-sm uppercase tracking-wider text-[#6B778C] text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#DFE1E6]">
             {rows.map((r) => {
-              const tone = statusTones[r.statusTone];
+              const tone = statusTones[r.statusTone] || statusTones.blue;
               return (
-                <tr key={r.id} className="hover:bg-[#F4F5F7] transition-colors group">
+                <tr key={r.id || r.key} className="hover:bg-[#F4F5F7] transition-colors group">
                   <td className="px-4 py-3 whitespace-nowrap font-code text-[12px]">
-                    <a href={`#/deviation/${r.id}`} className="text-[#0052CC] font-semibold hover:underline flex items-center gap-1">
-                      {r.id}
-                      <Icon name="open_in_new" className="text-[14px] text-[#6B778C] opacity-0 group-hover:opacity-100" />
+                    <a href={`#/deviation/${r.key || r.id}`} className="text-[#0052CC] font-semibold hover:underline flex items-center gap-1">
+                      {r.key || r.id}
                     </a>
                     <span className="text-[10px] text-[#6B778C] block">{r.subject}</span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-headline-sm text-headline-sm text-[#172B4D] block">{r.site}</span>
-                    <span className="text-[11px] text-[#6B778C]">PI: {r.pi}</span>
+                    <span className="text-[11px] text-[#6B778C]">PI: {r.pi || 'Investigator'}</span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border ${severityTones[r.severity]}`}>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border ${severityTones[r.severity] || severityTones.Minor}`}>
                       {r.severity}
                     </span>
-                    <span className="text-[11px] text-[#6B778C] block mt-0.5">{r.category}</span>
+                    <span className="text-[11px] text-[#6B778C] block mt-0.5 capitalize">{r.category}</span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-[3px] uppercase border ${tone.pill}`}>
@@ -100,29 +94,26 @@ export default function OverdueCapaTable() {
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`text-[12px] ${dueTones[r.dueTone]}`}>{r.dueLabel}</span>
+                    <span className={`text-[12px] ${dueTones[r.dueTone] || dueTones.normal}`}>{r.dueLabel}</span>
                     <span className="block text-[11px] text-[#6B778C]">{r.dueNote}</span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-[10px]" style={{ background: r.avatar }}>
-                        {r.initials}
+                      <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-[10px]" style={{ background: r.avatar || '#0052CC' }}>
+                        {r.initials || 'U'}
                       </div>
-                      <span className="font-headline-sm text-headline-sm text-[#172B4D]">{r.owner}</span>
+                      <span className="font-headline-sm text-headline-sm text-[#172B4D]">{r.owner || 'Assigned Staff'}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-[#172B4D] font-code text-[12px]">{r.age}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <button type="button" title="Issue actions" className="p-1 hover:bg-[#EBECF0] rounded text-[#6B778C] hover:text-[#172B4D]">
-                      <Icon name="more_horiz" className="text-[18px]" />
-                    </button>
-                  </td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-[#6B778C]">No deviations match “{query}”.</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-[#6B778C]">
+                  {query ? `No deviations match “${query}”.` : 'No protocol deviations requiring attention.'}
+                </td>
               </tr>
             )}
           </tbody>
@@ -131,18 +122,8 @@ export default function OverdueCapaTable() {
 
       <div className="px-4 py-3 bg-[#FAFBFC] border-t border-[#DFE1E6] flex flex-col sm:flex-row items-center justify-between gap-3 text-[#6B778C]">
         <span className="font-body-md text-body-md">
-          Showing <strong>{rows.length}</strong> of <strong>{TOTAL_OPEN}</strong> open deviations
+          Showing <strong>{rows.length}</strong> of <strong>{totalOpen || rows.length}</strong> open deviations
         </span>
-        <div className="flex items-center gap-1">
-          <button type="button" aria-label="First page" disabled className="p-1.5 rounded-[3px] opacity-40"><Icon name="first_page" className="text-[16px]" /></button>
-          <button type="button" aria-label="Previous page" disabled className="p-1.5 rounded-[3px] opacity-40"><Icon name="chevron_left" className="text-[16px]" /></button>
-          <span className="px-2.5 py-1 text-[12px] font-semibold text-[#172B4D] bg-[#EBECF0] rounded-[3px]">1</span>
-          {[2, 3, 4].map((n) => (
-            <button key={n} type="button" className="px-2.5 py-1 text-[12px] hover:bg-[#EBECF0] rounded-[3px]">{n}</button>
-          ))}
-          <button type="button" aria-label="Next page" className="p-1.5 rounded-[3px] hover:bg-[#EBECF0]"><Icon name="chevron_right" className="text-[16px]" /></button>
-          <button type="button" aria-label="Last page" className="p-1.5 rounded-[3px] hover:bg-[#EBECF0]"><Icon name="last_page" className="text-[16px]" /></button>
-        </div>
       </div>
     </div>
   );

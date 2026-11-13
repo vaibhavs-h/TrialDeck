@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import Icon from '../../../components/common/Icon.jsx';
-import { comments } from '../data/deviationData.js';
 
-const tabs = ['Activity', 'Comments (3)', 'History', 'Audit Logs'];
+const tabs = ['Activity', 'Comments', 'History'];
 
-export default function ActivityFeed() {
-  const [tab, setTab] = useState('Activity');
+export default function ActivityFeed({ comments = [] }) {
+  const [tab, setTab] = useState('Comments');
 
   return (
     <div className="bg-surface-container-lowest rounded p-space-md shadow-sm">
@@ -22,35 +21,35 @@ export default function ActivityFeed() {
                   : 'text-secondary hover:text-on-surface'
               }`}
             >
-              {t}
+              {t} {t === 'Comments' ? `(${comments.length})` : ''}
             </button>
           ))}
-        </div>
-        <div className="flex items-center gap-space-xs text-secondary font-body-md text-body-md">
-          <span>Order:</span>
-          <span className="font-body-bold text-body-bold text-on-surface cursor-pointer flex items-center">
-            Newest first <Icon name="expand_more" className="text-[16px]" />
-          </span>
         </div>
       </div>
 
       <div className="flex flex-col gap-space-md pt-space-md">
-        {comments.map((c) => (
-          <div key={c.initials} className="flex items-start gap-space-sm">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${c.avatar}`}>
-              {c.initials}
-            </div>
-            <div className="flex-1 bg-surface-container-low rounded p-space-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-body-bold text-body-bold text-on-surface">
-                  {c.name} <span className="text-secondary font-normal">({c.role})</span>
-                </span>
-                <span className="font-body-md text-body-md text-outline">{c.time}</span>
-              </div>
-              <p className="font-body-md text-body-md text-on-surface">{c.text}</p>
-            </div>
+        {comments.length === 0 ? (
+          <div className="py-6 text-center text-[#6B778C] font-body-md text-body-md">
+            No comments logged on this deviation issue yet.
           </div>
-        ))}
+        ) : (
+          comments.map((c) => (
+            <div key={c.id || c.created} className="flex items-start gap-space-sm">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-[#0052CC] text-white">
+                {c.initials || 'U'}
+              </div>
+              <div className="flex-1 bg-surface-container-low rounded p-space-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-body-bold text-body-bold text-on-surface">
+                    {c.author || c.name}
+                  </span>
+                  <span className="font-body-md text-body-md text-outline">{c.time}</span>
+                </div>
+                <p className="font-body-md text-body-md text-on-surface whitespace-pre-wrap">{c.text}</p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

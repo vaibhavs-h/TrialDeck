@@ -15,7 +15,6 @@ modules:
       resource: dashboard # Custom UI (React + Vite)
       resolver:
         function: resolver
-  # Week 4-5: add rovo:agent, action modules here.
   function:
     - key: resolver
       handler: backend/index.handler
@@ -28,6 +27,8 @@ permissions:
   scopes:
     - read:jira-work
     - write:jira-work
+    - read:jira-user
+    - storage:app
     - read:page:confluence
   content:
     styles:
