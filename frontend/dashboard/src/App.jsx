@@ -4,16 +4,13 @@ import DashboardPage from './modules/dashboard/pages/DashboardPage.jsx';
 import SiteCoordinatorPage from './modules/coordinator/pages/SiteCoordinatorPage.jsx';
 import DeviationDetailPage from './modules/deviation/pages/DeviationDetailPage.jsx';
 import AmendmentPage from './modules/amendment/pages/AmendmentPage.jsx';
+import SettingsPage from './modules/dashboard/pages/SettingsPage.jsx';
+import { SitesPage, CapaPage, ReportsPage } from './modules/dashboard/pages/AdditionalPages.jsx';
 
-// Tiny hash router
-//   #/                  -> manager dashboard
-//   #/coordinator       -> site coordinator dashboard
-//   #/deviation/DEV-112 -> deviation detail page
-//   #/amendment         -> protocol amendment page
 function useHash() {
-  const [hash, setHash] = useState(window.location.hash);
+  const [hash, setHash] = useState(window.location.hash || '#/');
   useEffect(() => {
-    const onChange = () => setHash(window.location.hash);
+    const onChange = () => setHash(window.location.hash || '#/');
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
@@ -25,11 +22,7 @@ export default function App() {
   const detail = hash.match(/^#\/deviation\/([\w-]+)$/);
 
   useEffect(() => {
-    if (detail) window.scrollTo(0, 0);
-    else if (hash === '#/capa') document.getElementById('table-section')?.scrollIntoView();
-    else if (hash === '#/sites') document.getElementById('site-deviations')?.scrollIntoView();
-    else if (hash === '#/tasks') document.getElementById('tasks-section')?.scrollIntoView();
-    else window.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [hash, detail?.[1]]);
 
   if (detail) {
@@ -39,16 +32,39 @@ export default function App() {
       </Shell>
     );
   }
-  if (hash === '#/coordinator' || hash === '#/sites' || hash === '#/tasks') {
+
+  if (hash === '#/coordinator' || hash === '#/tasks') {
     return (
-      <Shell
-        activeSub={hash === '#/sites' ? 'Site Directory' : 'Deviations'}
-        activeSide={hash === '#/sites' ? 'Trial Sites' : 'Protocol Deviations'}
-      >
+      <Shell activeSub="Deviations" activeSide="Protocol Deviations">
         <SiteCoordinatorPage />
       </Shell>
     );
   }
+
+  if (hash === '#/sites') {
+    return (
+      <Shell activeSub="Site Directory" activeSide="Trial Sites">
+        <SitesPage />
+      </Shell>
+    );
+  }
+
+  if (hash === '#/capa') {
+    return (
+      <Shell activeSub="CAPA Tracker" activeSide="CAPA Register">
+        <CapaPage />
+      </Shell>
+    );
+  }
+
+  if (hash === '#/reports') {
+    return (
+      <Shell activeSub="Reports" activeSide="Safety & Compliance">
+        <ReportsPage />
+      </Shell>
+    );
+  }
+
   if (hash === '#/amendment') {
     return (
       <Shell activeSub="Amendments" activeSide="Protocol Amendments">
@@ -56,12 +72,18 @@ export default function App() {
       </Shell>
     );
   }
-  if (hash === '#/capa') {
+
+  if (hash === '#/settings') {
     return (
-      <Shell activeSub="CAPA Tracker" activeSide="CAPA Register">
-        <DashboardPage />
+      <Shell activeSub="Settings" activeSide="Hub Settings">
+        <SettingsPage />
       </Shell>
     );
   }
-  return <Shell><DashboardPage /></Shell>;
+
+  return (
+    <Shell activeSub="Overview" activeSide="Operational Summary">
+      <DashboardPage />
+    </Shell>
+  );
 }
