@@ -1,16 +1,25 @@
-import { weeklyTrend, trendSummary } from '../data/mockData.js';
+export default function TrendChart({ data = null }) {
+  const BASE_Y = 180;
+  const UNIT = 20;      // pixels per deviation
+  const FIRST_X = 60;
+  const STEP = 40;
+  const ticks = [0, 2, 4, 6, 8];
 
-const BASE_Y = 180;
-const UNIT = 20;      // pixels per deviation
-const FIRST_X = 60;
-const STEP = 40;
-const ticks = [0, 2, 4, 6, 8];
+  const trendData = data?.weekly || [];
+  const trendSummary = data?.summary || { average: '0.0 / wk', movingAvg: '0.0 items/wk', stability: 'Stable' };
 
-export default function TrendChart() {
-  const pts = weeklyTrend.map((v, i) => ({ week: i + 1, v, x: FIRST_X + i * STEP, y: BASE_Y - v * UNIT }));
+  if (trendData.length === 0) {
+    return (
+      <div className="jira-card p-4 flex flex-col justify-center items-center h-[260px] text-[#6B778C]">
+        <span>No weekly intake trend data available.</span>
+      </div>
+    );
+  }
+
+  const pts = trendData.map((v, i) => ({ week: i + 1, v, x: FIRST_X + i * STEP, y: BASE_Y - v * UNIT }));
   const line = pts.map((p) => `${p.x},${p.y}`).join(' ');
   const area = `${pts[0].x},${BASE_Y} ${line} ${pts[pts.length - 1].x},${BASE_Y}`;
-  const peak = pts.reduce((a, b) => (b.v > a.v ? b : a));
+  const peak = pts.reduce((a, b) => (b.v > a.v ? b : a), pts[0]);
   const labelled = pts.filter((p) => p.week % 2 === 1 || p.week === pts.length);
 
   return (
@@ -49,16 +58,18 @@ export default function TrendChart() {
           <polyline points={line} fill="none" stroke="#0052CC" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
           {pts.map((p) => {
-            const isPeak = p === peak;
+            const isPeak = p === peak && p.v > 0;
             return (
               <circle key={p.week} cx={p.x} cy={p.y} r={isPeak ? 4.5 : 3.5}
                 fill={isPeak ? '#DE350B' : '#FFFFFF'} stroke={isPeak ? '#DE350B' : '#0052CC'} strokeWidth="2" />
             );
           })}
 
-          <text x={peak.x} y={peak.y - 12} textAnchor="middle" fill="#DE350B" fontFamily="Inter" fontSize="11" fontWeight="700">
-            {peak.v} (Peak)
-          </text>
+          {peak.v > 0 && (
+            <text x={peak.x} y={peak.y - 12} textAnchor="middle" fill="#DE350B" fontFamily="Inter" fontSize="11" fontWeight="700">
+              {peak.v} (Peak)
+            </text>
+          )}
 
           {labelled.map((p) => (
             <text key={p.week} x={p.x} y="200" textAnchor="middle" fill="#6B778C" fontSize="11" fontFamily="JetBrains Mono">

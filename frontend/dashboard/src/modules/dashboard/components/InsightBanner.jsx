@@ -1,6 +1,6 @@
-import { insight } from '../data/mockData.js';
+export default function InsightBanner({ insight }) {
+  if (!insight || !insight.site) return null;
 
-export default function InsightBanner() {
   return (
     <div className="mt-4 bg-[#DEEBFF] border border-[#B3D4FF] rounded-[3px] px-3.5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
       <div className="flex items-center gap-2.5">

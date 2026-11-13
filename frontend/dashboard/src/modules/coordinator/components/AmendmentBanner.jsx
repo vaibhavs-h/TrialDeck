@@ -1,7 +1,8 @@
 import Icon from '../../../components/common/Icon.jsx';
-import { banner } from '../data/coordinatorData.js';
 
-export default function AmendmentBanner() {
+export default function AmendmentBanner({ alert }) {
+  if (!alert) return null;
+
   return (
     <section className="w-full mb-space-md">
       <div className="bg-amber-50 border border-amber-200/70 rounded-lg p-3.5 flex items-center justify-between gap-space-md shadow-sm">
@@ -10,7 +11,7 @@ export default function AmendmentBanner() {
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
           </div>
           <p className="font-body-md text-body-md text-amber-950 truncate">
-            <strong className="font-body-bold text-body-bold">{banner.title}</strong> {banner.message}
+            <strong className="font-body-bold text-body-bold">{alert.title || 'Operational Notice:'}</strong> {alert.message}
           </p>
         </div>
         <a href="#/tasks" className="font-body-bold text-body-bold text-primary hover:text-primary-container shrink-0 flex items-center gap-1 transition-colors">
