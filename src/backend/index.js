@@ -1,4 +1,5 @@
 import Resolver from '@forge/resolver';
+export { DISCLAIMER } from './config/constants';
 import {
   getDeviation,
   getRelatedDeviations,
@@ -29,6 +30,7 @@ import {
   getSettings,
   saveSettings
 } from './resolvers/writes';
+import { queryKnowledgeGraph } from './resolvers/knowledgeGraph';
 
 const resolver = new Resolver();
 
@@ -63,5 +65,6 @@ resolver.define('transitionIssue', ({ payload }) => transitionIssue(payload));
 resolver.define('updateDeviation', ({ payload }) => updateDeviation(payload));
 resolver.define('getSettings', () => getSettings());
 resolver.define('saveSettings', ({ payload }) => saveSettings(payload));
+resolver.define('queryKnowledgeGraph', ({ payload }) => queryKnowledgeGraph(payload?.query));
 
 export const handler = resolver.getDefinitions();
