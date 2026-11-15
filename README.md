@@ -48,6 +48,22 @@ design/                 Stitch mockups and notes (reference only, not built)
 PRIVACY.md, TERMS.md    Linked from the Marketplace/distribution settings
 ```
 
+## Protocol amendment analysis
+
+Dashboard, then **Protocol Amendments** (`#/amendment`). It compares two versions of a Confluence
+protocol page, lists what changed, and builds a per-site task plan (re-consent, IRB approval,
+retraining, form updates). Nothing is written to Jira until a person approves the plan.
+
+To try it:
+1. Create a Confluence page and publish it, then edit it and publish again, so it has two versions.
+2. Make sure the Jira Site field has options (one per site) and project `CLIN` has a Task issue type.
+3. Pick the page and the two versions, then **Analyze amendment**, untick anything that does not apply,
+   and **Approve and create tasks**.
+
+The classification is keyword-based (`src/backend/lib/amendmentAnalysis.js`), so it is a draft for
+review, not a decision. Tasks are labelled `amendment-<pageId>-v<from>-v<to>` so approving the same
+amendment twice does not create duplicates.
+
 ## Team workflow
 
 `git pull` before starting, push often. One Forge app owner; add collaborators via the Developer
