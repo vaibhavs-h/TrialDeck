@@ -10,7 +10,12 @@ import {
   getReports
 } from './resolvers/deviations';
 import { getDashboard } from './resolvers/dashboard';
-import { diffAmendment } from './resolvers/amendments';
+import {
+  getProtocolPages,
+  getAmendmentVersions,
+  analyzeAmendment,
+  createAmendmentTasks
+} from './resolvers/amendments';
 import {
   getCreateMeta,
   getAssignableUsers,
@@ -39,7 +44,12 @@ resolver.define('getSites', () => getSites());
 resolver.define('getCapas', () => getCapas());
 resolver.define('getSiteTasks', ({ payload }) => getSiteTasks(payload?.site));
 resolver.define('getReports', () => getReports());
-resolver.define('diffAmendment', (req) => diffAmendment(req));
+
+// Protocol amendment analysis (analyze is read-only; create writes to Jira and needs approval)
+resolver.define('getProtocolPages', () => getProtocolPages());
+resolver.define('getAmendmentVersions', ({ payload }) => getAmendmentVersions(payload));
+resolver.define('analyzeAmendment', ({ payload }) => analyzeAmendment(payload));
+resolver.define('createAmendmentTasks', ({ payload }) => createAmendmentTasks(payload));
 
 // Write & Metadata Resolvers
 resolver.define('getCreateMeta', () => getCreateMeta());
