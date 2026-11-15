@@ -56,6 +56,9 @@ export default function SourcePicker({ value, onChange, onAnalyze, analyzing, an
 
   const pageList = pages || [];
   const known = pageList.some((p) => p.id === value.pageId);
+  const comparable = pageList.filter((p) => p.version >= 2);
+  const others = pageList.filter((p) => !(p.version >= 2));
+  const pageLabel = (p) => `${p.title} (${p.version ? `v${p.version}, ` : ''}ID ${p.id})`;
   const enoughVersions = (versions?.versions.length ?? 0) >= 2;
   const canAnalyze =
     value.pageId && value.fromVersion && value.toVersion && String(value.fromVersion) !== String(value.toVersion);
@@ -92,15 +95,32 @@ export default function SourcePicker({ value, onChange, onAnalyze, analyzing, an
           >
             <option value="">{pagesLoading ? 'Loading pages...' : 'Select a page'}</option>
             {!known && value.pageId && <option value={value.pageId}>{`Page ${value.pageId}`}</option>}
-            {pageList.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
+            {/* Many pages share a title (every space home page is "Overview"), so show the version
+                count and ID, and put pages that can actually be compared first. */}
+            {comparable.length > 0 && (
+              <optgroup label="Ready to compare (2 or more versions)">
+                {comparable.map((p) => (
+                  <option key={p.id} value={p.id}>{pageLabel(p)}</option>
+                ))}
+              </optgroup>
+            )}
+            {others.length > 0 && (
+              <optgroup label={comparable.length ? 'Only one version (nothing to compare yet)' : 'Pages'}>
+                {others.map((p) => (
+                  <option key={p.id} value={p.id}>{pageLabel(p)}</option>
+                ))}
+              </optgroup>
+            )}
           </select>
           {!pagesLoading && !pagesError && pageList.length === 0 && (
             <span className="text-[12px] text-outline">
               No Confluence pages found. Create a protocol page and publish it at least twice.
+            </span>
+          )}
+          {!pagesLoading && !pagesError && pageList.length > 0 && comparable.length === 0 && (
+            <span className="text-[12px] text-outline">
+              None of these pages has two published versions yet. Edit your protocol page and publish it again, then
+              reload this screen.
             </span>
           )}
         </label>
