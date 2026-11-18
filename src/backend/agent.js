@@ -1,4 +1,6 @@
 import api, { route } from '@forge/api';
+import { getResolvedFieldMapping } from './lib/fields.js';
+import { searchAll } from './lib/jira.js';
 
 // ---- helpers ----
 // ADF [Atlassian Document Format, the JSON format Jira uses for rich text] -> plain text
@@ -19,7 +21,7 @@ function valueToText(v) {
     return v.value || v.name || v.displayName || '';
 }
 
-// plain text -> ADF paragraphs
+// plain text -> ADF paragraphs with strong, code, heading, bullet list support
 function inlineNodes(line) {
     const nodes = line
         .split('**')
@@ -32,7 +34,7 @@ function inlineNodes(line) {
     return nodes.length ? nodes : [{ type: 'text', text: ' ' }];
 }
 
-function textToAdf(text) {
+export function textToAdf(text) {
     const content = [];
     let list = null;
     for (const raw of String(text).split('\n')) {
@@ -67,7 +69,6 @@ function pickIssueKey(payload, context) {
 
 // ---- action 1: read the deviation ----
 export async function getDeviation(payload, context) {
-    console.log('getDeviation payload:', JSON.stringify(payload)); // check shape in forge logs
     const key = pickIssueKey(payload, context);
     if (!key) return { error: 'No issue key provided.' };
 
@@ -77,12 +78,31 @@ export async function getDeviation(payload, context) {
     if (!res.ok) return { error: `Could not read ${key}: HTTP ${res.status}` };
     const issue = await res.json();
 
-    // map readable field names to values, skip empty ones
+    // Map readable field names to values, utilizing resolved field mapping when available
+    let resolvedMapping = {};
+    try {
+        const mappingResult = await getResolvedFieldMapping('user');
+        resolvedMapping = mappingResult.mapping || {};
+    } catch (err) {
+        // Fall back gracefully
+    }
+
     const fields = {};
     for (const [id, value] of Object.entries(issue.fields || {})) {
         const text = valueToText(value);
         if (text && issue.names?.[id]) fields[issue.names[id]] = text;
     }
+
+    // Explicitly expose standard clinical trial properties
+    const standardData = {
+        site: resolvedMapping.site ? valueToText(issue.fields?.[resolvedMapping.site]) : (fields['site'] || fields['Site']),
+        category: resolvedMapping.category ? valueToText(issue.fields?.[resolvedMapping.category]) : (fields['category'] || fields['Category']),
+        rootCause: resolvedMapping.rootCause ? valueToText(issue.fields?.[resolvedMapping.rootCause]) : (fields['Root cause'] || fields['root cause']),
+        subjectId: resolvedMapping.subjectId ? valueToText(issue.fields?.[resolvedMapping.subjectId]) : (fields['Subject ID'] || fields['subject id']),
+        protocolVersion: resolvedMapping.protocolVersion ? valueToText(issue.fields?.[resolvedMapping.protocolVersion]) : (fields['Protocol version'] || fields['protocol version']),
+        dateDetected: resolvedMapping.dateDetected ? valueToText(issue.fields?.[resolvedMapping.dateDetected]) : (fields['date detected'] || fields['Date detected']),
+        reportStatus: resolvedMapping.reportStatus ? valueToText(issue.fields?.[resolvedMapping.reportStatus]) : (fields['Report status'] || fields['report status']),
+    };
 
     const cRes = await api.asUser().requestJira(
         route`/rest/api/3/issue/${key}/comment?maxResults=20&orderBy=created`
@@ -95,12 +115,18 @@ export async function getDeviation(payload, context) {
         }))
         : [];
 
-    return { issueKey: key, summary: issue.fields?.summary, fields, comments };
+    return {
+        issueKey: key,
+        summary: issue.fields?.summary,
+        description: adfToText(issue.fields?.description),
+        standardData,
+        fields,
+        comments,
+    };
 }
 
-// ---- action 2: save the approved draft as a comment ----
+// ---- action 2: save the approved draft as a comment and update report status ----
 export async function saveReportDraft(payload, context) {
-    console.log('saveReportDraft payload keys:', Object.keys(payload || {}));
     const key = pickIssueKey(payload, context);
     const text = payload?.reportText;
     if (!key || !text) return { error: 'issueKey and reportText are required.' };
@@ -114,5 +140,78 @@ export async function saveReportDraft(payload, context) {
         }
     );
     if (!res.ok) return { error: `Could not save comment: HTTP ${res.status}` };
-    return { saved: true, issueKey: key };
+
+    // Update report status to Approved if custom field is mapped
+    let statusUpdated = false;
+    try {
+        const { mapping } = await getResolvedFieldMapping('user');
+        if (mapping?.reportStatus) {
+            // Attempt to fetch createmeta/editmeta or set directly
+            await api.asUser().requestJira(
+                route`/rest/api/3/issue/${key}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({
+                        fields: {
+                            [mapping.reportStatus]: { value: 'Approved' },
+                        },
+                    }),
+                }
+            );
+            statusUpdated = true;
+        }
+    } catch (ignore) {
+        // Status update is best-effort; don't fail report draft saving if option id/value doesn't match
+    }
+
+    return { saved: true, issueKey: key, statusUpdated };
+}
+
+// ---- action 3: find similar deviations ----
+export async function findSimilarDeviations(payload, context) {
+    const key = pickIssueKey(payload, context);
+    const site = payload?.site;
+    const rootCause = payload?.rootCause;
+    const summary = payload?.summary;
+
+    let jqlParts = ['issuetype = "Protocol Deviation"'];
+    if (key) {
+        jqlParts.push(`key != "${key}"`);
+    }
+
+    if (site) {
+        jqlParts.push(`(text ~ "${site}" OR description ~ "${site}")`);
+    } else if (rootCause) {
+        jqlParts.push(`(text ~ "${rootCause}" OR description ~ "${rootCause}")`);
+    } else if (summary) {
+        // extract alphanumeric words
+        const words = summary.replace(/[^a-zA-Z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(w => w.length > 3)
+            .slice(0, 3);
+        if (words.length > 0) {
+            jqlParts.push(`text ~ "${words.join(' ')}"`);
+        }
+    }
+
+    const jql = jqlParts.join(' AND ') + ' ORDER BY created DESC';
+    try {
+        const issues = await searchAll(jql, ['summary', 'status', 'created'], 5, { as: 'user', max: 5 });
+        return {
+            similarDeviations: issues.map(iss => ({
+                key: iss.key,
+                summary: iss.fields?.summary || '',
+                status: iss.fields?.status?.name || '',
+                created: iss.fields?.created || '',
+            })),
+            count: issues.length,
+        };
+    } catch (err) {
+        return {
+            similarDeviations: [],
+            count: 0,
+            message: 'No similar deviations found or search query not supported on this project.',
+        };
+    }
 }

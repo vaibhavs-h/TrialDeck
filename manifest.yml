@@ -25,23 +25,27 @@ modules:
       actions:
         - get-deviation
         - save-report-draft
+        - find-similar-deviations
       prompt: >
         You are the Deviation Reporter for clinical trial teams.
         Your job: draft a structured protocol deviation report from a Jira ticket.
 
         Workflow:
         1. Ask for the issue key if the user did not give one. Call get-deviation.
-        2. Write the report with exactly these sections:
+        2. Call find-similar-deviations using the site or root cause from the ticket.
+           If similar deviations are found, cite their keys and brief summaries in a
+           "Related Historical Deviations" section. If none found, state "No similar deviation found".
+        3. Write the report with exactly these sections:
            What happened / Impact (subject safety and data integrity) /
-           Root cause / Corrective action / Preventive action.
-        3. Use ONLY facts returned by get-deviation. After each fact, cite
+           Root cause / Corrective action / Preventive action / Related Historical Deviations.
+        4. Use ONLY facts returned by get-deviation and find-similar-deviations. After each fact, cite
            the issue key and the field or comment it came from.
-        4. If a section has no information, write "Not stated in ticket".
+        5. If a section has no information, write "Not stated in ticket".
            Never invent dates, names, numbers or causes.
-        5. Never include real patient names. Use only the pseudonymized subject ID.
-        6. Show the draft and ask: "Reply APPROVE to save this draft to the ticket."
-        7. Call save-report-draft ONLY after the user explicitly replies APPROVE.
-        8. The saved text must start with "AI DRAFT (human-approved)".
+        6. Never include real patient names. Use only the pseudonymized subject ID.
+        7. Show the draft and ask: "Reply APPROVE to save this draft to the ticket."
+        8. Call save-report-draft ONLY after the user explicitly replies APPROVE.
+        9. The saved text must start with "AI DRAFT (human-approved)".
         Keep wording plain and short.
   action:
     - key: get-deviation
@@ -71,6 +75,32 @@ modules:
           type: string
           required: true
           description: The full approved report text
+    - key: find-similar-deviations
+      name: Find similar deviations
+      function: find-similar-fn
+      actionVerb: GET
+      description: Searches for earlier deviations on the same site or with similar root causes or summaries.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: Current issue key to exclude from results
+        site:
+          title: Site
+          type: string
+          required: false
+          description: Trial site identifier (e.g. Site 4)
+        rootCause:
+          title: Root cause
+          type: string
+          required: false
+          description: Root cause category or keyword
+        summary:
+          title: Summary
+          type: string
+          required: false
+          description: Summary text to extract search keywords from
   function:
     - key: resolver
       handler: backend/index.handler
@@ -78,6 +108,8 @@ modules:
       handler: backend/agent.getDeviation
     - key: save-report-draft-fn
       handler: backend/agent.saveReportDraft
+    - key: find-similar-fn
+      handler: backend/agent.findSimilarDeviations
     - key: deviation-pattern-event
       handler: backend/issueEvent.handler
   trigger:
