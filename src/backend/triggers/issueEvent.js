@@ -32,6 +32,14 @@ export async function handler(event) {
     const isRelevant = [config.deviationIssueType, config.capaIssueType]
       .some(name => name.toLowerCase() === issueType.toLowerCase());
     if (!isRelevant) return { ok: true, data: { ignored: true } };
+
+    // Prevent infinite trigger loops by checking if the update was made by the app itself
+    // Or if the issue changelog shows only fields updated by the app (like comments or report status)
+    const actor = event?.userAccount || event?.actor || event?.sender || event?.body?.userAccount;
+    const isAppActor = actor?.accountType === 'app' || actor?.displayName?.includes('TrialDeck') || actor?.displayName?.includes('App');
+    if (isAppActor && event?.eventType === 'avi:jira:updated:issue') {
+      return { ok: true, data: { ignored: true, reason: 'app_event_loop_prevention' } };
+    }
     const result = await reconcileProject(projectKey, { issueKey });
     return { ok: true, data: result };
   } catch (error) {

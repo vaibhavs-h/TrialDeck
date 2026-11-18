@@ -60,10 +60,12 @@ export async function getDeviations(payload = {}) {
     overdueCapas: overdueCapas.length,
     pendingTasks: openDeviations.length,
   };
-  const weeklyTrend = Array(12).fill(0);
-  for (const d of deviations) {
-    const w = Math.min(11, Math.floor(Math.random() * 12));
-    weeklyTrend[w]++;
+  const now = Date.now();
+  for (const deviation of deviations) {
+    const detectedAt = Date.parse(deviation.dateDetected || deviation.created || '');
+    if (!Number.isFinite(detectedAt)) continue;
+    const weeksAgo = Math.floor((now - detectedAt) / (7 * 86_400_000));
+    if (weeksAgo >= 0 && weeksAgo < weeklyTrend.length) weeklyTrend[11 - weeksAgo]++;
   }
 
   return {
@@ -76,15 +78,6 @@ export async function getDeviations(payload = {}) {
     missingFields: dataResult.config?.missingFields || [],
     hasRequiredFields: dataResult.config?.hasRequiredFields,
   };
-}
-  const now = Date.now();
-  for (const deviation of deviations) {
-    const detectedAt = Date.parse(deviation.dateDetected || deviation.created || '');
-    if (!Number.isFinite(detectedAt)) continue;
-    const weeksAgo = Math.floor((now - detectedAt) / (7 * 86_400_000));
-    if (weeksAgo >= 0 && weeksAgo < weeklyTrend.length) weeklyTrend[11 - weeksAgo]++;
-  }
-  return { deviations, kpis, trend: weeklyTrend, allSites };
 }
 
 export async function getDeviation(issueKey) {
