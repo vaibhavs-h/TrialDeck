@@ -14,9 +14,7 @@ import {
 
 async function getFieldMapping(as = 'user') {
   const config = await getFeatureConfig(as);
-  const mapping = config.fieldMap;
-  validateRequiredField(mapping.site, 'Site');
-  validateRequiredField(mapping.category, 'Category');
+  const mapping = config.fieldMap || {};
   return { mapping, config };
 }
 

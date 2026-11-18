@@ -70,16 +70,22 @@ export function fieldText(value) {
 
 export function findCustomFieldId(fields, fieldName) {
   if (!Array.isArray(fields) || typeof fieldName !== 'string') return null;
-  const normalizedSearch = fieldName.trim().toLowerCase();
-  const field = fields.find(item =>
-    item && typeof item.name === 'string'
-      && item.name.trim().toLowerCase() === normalizedSearch
-  );
+  const normalizedSearch = fieldName.trim().toLowerCase().replace(/[_\-\s]+/g, ' ');
+  const field = fields.find(item => {
+    if (!item || typeof item.name !== 'string') return false;
+    const itemName = item.name.trim().toLowerCase().replace(/[_\-\s]+/g, ' ');
+    return itemName === normalizedSearch;
+  });
   return field?.id || null;
 }
 
 export function validateRequiredField(fieldId, fieldName) {
-  if (!fieldId) throw new Error(`Missing required Jira custom field: "${fieldName}".`);
+  // Graceful check: no longer throws fatal errors to prevent crashing resolvers
+  if (!fieldId) {
+    console.warn(`[TrialDeck] Optional or unmapped Jira custom field: "${fieldName}".`);
+    return false;
+  }
+  return true;
 }
 
 export async function searchAll(jql, fields, pageSize = MAX_PAGE_SIZE, options = {}) {

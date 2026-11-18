@@ -7,6 +7,7 @@ import {
   JiraRequestError,
   searchAll,
 } from '../lib/jira.js';
+import { getResolvedFieldMapping } from '../lib/fields.js';
 import {
   deviationsInProject,
   deviationsInWindow,
@@ -15,13 +16,13 @@ import {
 import { normalizeDeviation } from '../lib/mapper.js';
 
 const FIELD_LABELS = {
-  site: 'Site',
-  category: 'Category',
+  site: 'site',
+  category: 'category',
   subjectId: 'Subject ID',
-  protocolVersion: 'Protocol Version',
-  rootCause: 'Root Cause',
-  dateDetected: 'Date Detected',
-  reportStatus: 'Report Status',
+  protocolVersion: 'Protocol version',
+  rootCause: 'Root cause',
+  dateDetected: 'date detected',
+  reportStatus: 'Report status',
 };
 
 const DEVIATION_FIELDS = [
@@ -57,30 +58,19 @@ async function fetchFieldMetadata(as) {
 
 export async function getFeatureConfig(as = 'user') {
   const config = await getConfig();
-  const storedMap = isRecord(config.fieldMap) ? config.fieldMap : {};
-  if (config.fieldMappingInitialized) return { ...config, fieldMap: storedMap };
+  const resolved = await getResolvedFieldMapping({ as });
+  const mergedMap = {
+    ...(config.fieldMap || {}),
+    ...(resolved.mapping || {}),
+  };
 
-  const discovered = { ...storedMap };
-  const missing = Object.keys(FIELD_LABELS).filter(key => !storedMap[key]);
-  if (missing.length === 0) {
-    return saveConfig({
-      ...config,
-      fieldMap: storedMap,
-      fieldMappingInitialized: true,
-    });
-  }
-
-  const metadata = await fetchFieldMetadata(as);
-  for (const [key, label] of Object.entries(FIELD_LABELS)) {
-    if (discovered[key]) continue;
-    const fieldId = findCustomFieldId(metadata, label);
-    if (fieldId) discovered[key] = fieldId;
-  }
-  return saveConfig({
+  return {
     ...config,
-    fieldMap: discovered,
-    fieldMappingInitialized: true,
-  });
+    fieldMap: mergedMap,
+    missingFields: resolved.missing || [],
+    missingRequired: resolved.missingRequired || [],
+    hasRequiredFields: resolved.hasRequired,
+  };
 }
 
 function customFieldIds(fieldMap) {
