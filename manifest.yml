@@ -44,15 +44,42 @@ modules:
            Never invent dates, names, numbers or causes.
         6. Never include real patient names. Use only the pseudonymized subject ID.
         7. Show the draft and ask: "Reply APPROVE to save this draft to the ticket."
-        8. Call save-report-draft ONLY after the user explicitly replies APPROVE.
+        8. Call save-report-draft ONLY after the user explicitly replies APPROVE in the current conversation.
         9. The saved text must start with "AI DRAFT (human-approved)".
         Keep wording plain and short.
+    - key: amendment-analyst
+      name: Amendment Analyst
+      description: Compares protocol page versions in Confluence, extracts changes, and creates per-site Jira tasks upon approval.
+      conversationStarters:
+        - List available protocol pages
+        - Analyze amendment between version 1 and 2
+      actions:
+        - list-protocol-pages
+        - analyze-amendment
+        - preview-site-tasks
+        - create-site-tasks
+      prompt: >
+        You are the Amendment Analyst for clinical trial operations.
+        Your job: analyze Confluence protocol amendments and prepare per-site rollout tasks.
+
+        Workflow:
+        1. If user has not specified a page or versions, call list-protocol-pages to guide them.
+        2. Always call analyze-amendment first to compare the two versions. Group changes by:
+           Eligibility, Schedule/Visit Windows, Dosing, Safety, and Consent.
+        3. Cite the exact source sentence for every single change. Never invent changes.
+        4. Call preview-site-tasks to simulate required site tasks (re-consent, IRB approval, retraining).
+        5. Present the summary and task preview to the user.
+        6. Ask: "Reply APPROVE to create these tasks in Jira."
+        7. Call create-site-tasks ONLY after the user explicitly replies APPROVE in the current conversation.
+        8. If create-site-tasks returns remaining > 0, inform the user:
+           "Created batch of tasks. N tasks remaining. Reply APPROVE again to create the next batch."
+        Keep wording precise and clinical.
   action:
     - key: get-deviation
       name: Get deviation
       function: get-deviation-fn
       actionVerb: GET
-      description: Reads a Jira protocol deviation ticket (fields, description, comments) by issue key.
+      description: Reads a Jira protocol deviation ticket (fields, description, comments) by issue key. (Read-only)
       inputs:
         issueKey:
           title: Issue key
@@ -63,7 +90,7 @@ modules:
       name: Save report draft
       function: save-report-draft-fn
       actionVerb: CREATE
-      description: Saves an approved deviation report draft as a comment on the Jira ticket. Call only after the user approves.
+      description: Saves an approved deviation report draft as a comment on the Jira ticket. WRITES TO JIRA. Call ONLY after user explicitly replies APPROVE.
       inputs:
         issueKey:
           title: Issue key
@@ -79,7 +106,7 @@ modules:
       name: Find similar deviations
       function: find-similar-fn
       actionVerb: GET
-      description: Searches for earlier deviations on the same site or with similar root causes or summaries.
+      description: Searches for earlier deviations on the same site or with similar root causes or summaries. (Read-only)
       inputs:
         issueKey:
           title: Issue key
@@ -101,6 +128,99 @@ modules:
           type: string
           required: false
           description: Summary text to extract search keywords from
+    - key: list-protocol-pages
+      name: List protocol pages
+      function: list-protocol-pages-fn
+      actionVerb: GET
+      description: Lists Confluence protocol pages available for amendment analysis. (Read-only, max 20 items)
+    - key: analyze-amendment
+      name: Analyze amendment
+      function: analyze-amendment-fn
+      actionVerb: GET
+      description: Compares two versions of a Confluence protocol page and returns classified changes with source citations. (Read-only, max 20 items)
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: Confluence page ID (e.g. 123456)
+        pageTitle:
+          title: Page Title
+          type: string
+          required: false
+          description: Confluence page title
+        fromVersion:
+          title: From Version
+          type: number
+          required: true
+          description: Prior protocol version number (e.g. 1)
+        toVersion:
+          title: To Version
+          type: number
+          required: true
+          description: New protocol version number (e.g. 2)
+    - key: preview-site-tasks
+      name: Preview site tasks
+      function: preview-site-tasks-fn
+      actionVerb: GET
+      description: Previews per-site rollout tasks that would be generated from an amendment diff. (Read-only, max 20 items)
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: Confluence page ID
+        pageTitle:
+          title: Page Title
+          type: string
+          required: false
+          description: Confluence page title
+        fromVersion:
+          title: From Version
+          type: number
+          required: true
+          description: Prior protocol version number
+        toVersion:
+          title: To Version
+          type: number
+          required: true
+          description: New protocol version number
+        effectiveDate:
+          title: Effective Date
+          type: string
+          required: false
+          description: Optional target effective date (YYYY-MM-DD)
+    - key: create-site-tasks
+      name: Create site tasks
+      function: create-site-tasks-fn
+      actionVerb: CREATE
+      description: Creates rollout tasks in Jira for each trial site. WRITES TO JIRA in batches of up to 10. Call ONLY after user explicitly replies APPROVE.
+      inputs:
+        pageId:
+          title: Page ID
+          type: string
+          required: false
+          description: Confluence page ID
+        pageTitle:
+          title: Page Title
+          type: string
+          required: false
+          description: Confluence page title
+        fromVersion:
+          title: From Version
+          type: number
+          required: true
+          description: Prior protocol version number
+        toVersion:
+          title: To Version
+          type: number
+          required: true
+          description: New protocol version number
+        effectiveDate:
+          title: Effective Date
+          type: string
+          required: false
+          description: Optional target effective date (YYYY-MM-DD)
   function:
     - key: resolver
       handler: backend/index.handler
@@ -110,6 +230,14 @@ modules:
       handler: backend/agent.saveReportDraft
     - key: find-similar-fn
       handler: backend/agent.findSimilarDeviations
+    - key: list-protocol-pages-fn
+      handler: backend/agentAmendment.listProtocolPages
+    - key: analyze-amendment-fn
+      handler: backend/agentAmendment.analyzeAmendmentAction
+    - key: preview-site-tasks-fn
+      handler: backend/agentAmendment.previewSiteTasks
+    - key: create-site-tasks-fn
+      handler: backend/agentAmendment.createSiteTasks
     - key: deviation-pattern-event
       handler: backend/issueEvent.handler
   trigger:

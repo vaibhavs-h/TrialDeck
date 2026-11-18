@@ -6,8 +6,8 @@
   "scripts": {
     "dev:dashboard": "vite",
     "build:dashboard": "vite build",
-    "test": "node --test tests/feature2.test.js tests/knowledgeGraph.test.js tests/judgeReady.test.js",
-    "test:feature2": "node --test tests/feature2.test.js tests/knowledgeGraph.test.js tests/judgeReady.test.js",
+    "test": "node --test tests/feature2.test.js tests/knowledgeGraph.test.js tests/judgeReady.test.js tests/amendmentAgent.test.js",
+    "test:feature2": "node --test tests/feature2.test.js tests/knowledgeGraph.test.js tests/judgeReady.test.js tests/amendmentAgent.test.js",
     "deploy": "npm run build:dashboard && forge deploy",
     "deploy:prod": "npm run build:dashboard && forge deploy -e production"
   },
