@@ -73,10 +73,29 @@ const App = () => {
     }
   };
 
-  if (!issueKey) return <Text>Open an issue in the CLIN project to view protocol details.</Text>;
+  if (!issueKey) return <Text>Open a Jira issue to view TrialDeck protocol deviation details.</Text>;
   if (loading) return <Spinner label="Loading deviation details..." />;
-  if (error) return <SectionMessage appearance="error" title="Could not load deviation">{error}</SectionMessage>;
-  if (!deviation) return <Text>No deviation data found.</Text>;
+  if (error) {
+    return (
+      <SectionMessage appearance="warning" title="Protocol Deviation Setup">
+        <Text>
+          Could not load protocol deviation details for this issue.
+          Ensure the issue has the &quot;Protocol Deviation&quot; work type with standard fields.
+          See the SETUP.md guide on GitHub for quick 5-minute setup instructions.
+        </Text>
+      </SectionMessage>
+    );
+  }
+  if (!deviation) {
+    return (
+      <SectionMessage appearance="information" title="No Protocol Details">
+        <Text>
+          This issue is not registered as a Protocol Deviation, or custom fields are pending.
+          Refer to SETUP.md to map your fields.
+        </Text>
+      </SectionMessage>
+    );
+  }
 
   const related = deviation.related || [];
 

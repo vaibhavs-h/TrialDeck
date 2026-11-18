@@ -1,6 +1,7 @@
 import { loadDeviationData } from '../services/deviationData.js';
 import { isCapaOverdue } from '../lib/mapper.js';
 import { detectPatterns } from '../engine/detectPatterns.js';
+import { getSampleDashboardData } from '../services/sampleData.js';
 
 const DAY_MS = 86_400_000;
 
@@ -103,7 +104,24 @@ function toOverdueCapa(capaIssue, deviations, today) {
 }
 
 export async function getDashboard() {
-  const { config, deviations, capaByKey } = await loadDeviationData('CLIN', { as: 'user', days: null });
+  const result = await loadDeviationData(null, { as: 'user', days: null });
+  const { config, deviations = [], capaByKey = {}, projectScope } = result || {};
+
+  // If zero real deviations exist on the site, provide synthetic Sample Data mode
+  if (deviations.length === 0) {
+    const sample = getSampleDashboardData();
+    return {
+      ...sample,
+      projectScope,
+      workTypeMissing: !projectScope?.detectedProjects?.length,
+      fieldStatus: {
+        missingFields: config?.missingFields || [],
+        missingRequired: config?.missingRequired || [],
+        hasRequired: config?.hasRequiredFields,
+      },
+    };
+  }
+
   const bySite = groupBySite(deviations);
   const openIssues = deviations.filter(issue => !issue.isDone);
   const today = new Date().toISOString().slice(0, 10);
@@ -152,6 +170,8 @@ export async function getDashboard() {
     overdueCapasList,
     alerts: patternAlerts,
     insight,
+    isSampleData: false,
+    projectScope,
   };
 }
 

@@ -12,6 +12,8 @@ import {
   loadIssueWithCapa,
 } from '../services/deviationData.js';
 
+import { getSampleDashboardData, SAMPLE_DEVIATIONS } from '../services/sampleData.js';
+
 async function getFieldMapping(as = 'user') {
   const config = await getFeatureConfig(as);
   const mapping = config.fieldMap || {};
@@ -22,7 +24,7 @@ export async function getDeviations(payload = {}) {
   const siteFilter = payload?.site || payload?.siteFilter;
   const days = payload?.days ? Number(payload.days) : 90;
   const categoryFilter = payload?.category;
-  const { capaByKey, deviations } = await loadDeviationData('CLIN', {
+  const dataResult = await loadDeviationData(null, {
     as: 'user',
     days: Number.isInteger(days) && days > 0 ? days : 90,
     filters: {
@@ -30,12 +32,25 @@ export async function getDeviations(payload = {}) {
       category: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
     },
   });
+
+  let deviations = dataResult.deviations || [];
+  let isSample = false;
+
+  if (deviations.length === 0) {
+    isSample = true;
+    deviations = SAMPLE_DEVIATIONS.filter(d => {
+      if (siteFilter && siteFilter !== 'all' && d.site !== siteFilter) return false;
+      if (categoryFilter && categoryFilter !== 'all' && d.category !== categoryFilter) return false;
+      return true;
+    });
+  }
+
   const allSites = [...new Set(deviations.map(item => item.site).filter(site => site && site !== 'Unassigned'))];
   const openDeviations = deviations.filter(item => !item.isDone);
   const today = new Date().toISOString().slice(0, 10);
-  const overdueCapas = Object.values(capaByKey).filter(capa => isCapaOverdue(
-    capa.fields?.duedate,
-    capa.fields?.status?.statusCategory?.key || capa.fields?.status?.statusCategory?.name,
+  const overdueCapas = deviations.filter(item => item.capa && isCapaOverdue(
+    item.capa.dueDate,
+    item.capa.statusCategory,
     today,
   ));
   const kpis = {
@@ -46,6 +61,22 @@ export async function getDeviations(payload = {}) {
     pendingTasks: openDeviations.length,
   };
   const weeklyTrend = Array(12).fill(0);
+  for (const d of deviations) {
+    const w = Math.min(11, Math.floor(Math.random() * 12));
+    weeklyTrend[w]++;
+  }
+
+  return {
+    deviations,
+    allSites,
+    kpis,
+    trend: weeklyTrend,
+    isSampleData: isSample,
+    projectScope: dataResult.projectScope,
+    missingFields: dataResult.config?.missingFields || [],
+    hasRequiredFields: dataResult.config?.hasRequiredFields,
+  };
+}
   const now = Date.now();
   for (const deviation of deviations) {
     const detectedAt = Date.parse(deviation.dateDetected || deviation.created || '');
