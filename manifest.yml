@@ -345,6 +345,8 @@ permissions:
     - read:jira-user # Existing UI resolvers read Jira user and assignee metadata.
     - storage:app # Store field mappings, per-project aggregates, alerts, and audit entries.
     - read:page:confluence # Existing report resolvers read Confluence pages.
+    - write:page:confluence # Create approved deviation report pages in Confluence.
+    - read:space:confluence # List target Confluence spaces for deviation reports.
   content:
     styles:
       - unsafe-inline # needed by recharts inline styles; revisit

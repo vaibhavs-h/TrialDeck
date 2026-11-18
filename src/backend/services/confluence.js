@@ -68,3 +68,83 @@ export async function getPageVersionBody(pageId, version) {
   const page = await res.json();
   return page.body?.storage?.value ?? '';
 }
+
+/** Lists accessible spaces for target report storage. */
+export async function listSpaces(limit = 25) {
+  try {
+    const res = await api.asUser().requestConfluence(route`/wiki/api/v2/spaces?limit=${limit}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results || []).map(s => ({
+      id: String(s.id),
+      key: s.key,
+      name: s.name,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Converts plain report text or markdown to simple Confluence storage XHTML. */
+function textToStorageHtml(text) {
+  const lines = String(text).split('\n');
+  const htmlParts = [];
+  let inList = false;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      continue;
+    }
+    const h = line.match(/^#{1,6}\s+(.*)$/);
+    const b = line.match(/^[-*]\s+(.*)$/);
+    if (h) {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      htmlParts.push(`<h3>${h[1]}</h3>`);
+    } else if (b) {
+      if (!inList) { htmlParts.push('<ul>'); inList = true; }
+      htmlParts.push(`<li>${b[1]}</li>`);
+    } else {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      htmlParts.push(`<p>${formatted}</p>`);
+    }
+  }
+  if (inList) htmlParts.push('</ul>');
+  return htmlParts.join('\n');
+}
+
+/** Creates a published Confluence report page for an approved deviation report. */
+export async function createReportPage({ spaceId, title, text }) {
+  const bodyStorage = textToStorageHtml(text);
+  const payload = {
+    spaceId: String(spaceId),
+    status: 'current',
+    title: String(title).slice(0, 255),
+    body: {
+      representation: 'storage',
+      value: bodyStorage,
+    },
+  };
+
+  const res = await api.asUser().requestConfluence(route`/wiki/api/v2/pages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Confluence page creation failed (status ${res.status}): ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const base = data._links?.base ?? '';
+  const webui = data._links?.webui ?? '';
+  return {
+    id: String(data.id),
+    title: data.title,
+    url: base && webui ? `${base}${webui}` : null,
+  };
+}

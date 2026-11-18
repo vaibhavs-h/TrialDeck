@@ -1,6 +1,7 @@
 import api, { route } from '@forge/api';
 import { getResolvedFieldMapping } from './lib/fields.js';
 import { searchAll } from './lib/jira.js';
+import { createReportPage, listSpaces } from './services/confluence.js';
 
 // ---- helpers ----
 // ADF [Atlassian Document Format, the JSON format Jira uses for rich text] -> plain text
@@ -131,12 +132,31 @@ export async function saveReportDraft(payload, context) {
     const text = payload?.reportText;
     if (!key || !text) return { error: 'issueKey and reportText are required.' };
 
+    let confluencePage = null;
+    let commentText = text;
+
+    // Optional Confluence Page creation if a space is available
+    try {
+        const spaces = await listSpaces(10);
+        if (spaces.length > 0) {
+            const spaceId = spaces[0].id;
+            const title = `Protocol Deviation Report - ${key} (${new Date().toISOString().slice(0, 10)})`;
+            confluencePage = await createReportPage({ spaceId, title, text });
+            if (confluencePage?.url) {
+                commentText = `${text}\n\n---\n**Confluence Report Page:** [${confluencePage.title}](${confluencePage.url})`;
+            }
+        }
+    } catch (confluenceErr) {
+        // Fallback to Jira comment only if Confluence page creation fails
+        console.warn('Confluence page creation skipped or failed, falling back to Jira comment:', confluenceErr.message);
+    }
+
     const res = await api.asUser().requestJira(
         route`/rest/api/3/issue/${key}/comment`,
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ body: textToAdf(text) }),
+            body: JSON.stringify({ body: textToAdf(commentText) }),
         }
     );
     if (!res.ok) return { error: `Could not save comment: HTTP ${res.status}` };
@@ -166,7 +186,13 @@ export async function saveReportDraft(payload, context) {
         // Status update is best-effort; don't fail report draft saving if option doesn't exist
     }
 
-    return { saved: true, issueKey: key, status: 'Draft', statusUpdated };
+    return {
+        saved: true,
+        issueKey: key,
+        status: 'Draft',
+        statusUpdated,
+        confluencePageUrl: confluencePage?.url || null,
+    };
 }
 
 // ---- action 3: find similar deviations ----
