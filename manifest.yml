@@ -15,9 +15,69 @@ modules:
       resource: dashboard # Custom UI (React + Vite)
       resolver:
         function: resolver
+  rovo:agent:
+    - key: deviation-reporter
+      name: Deviation Reporter
+      description: Drafts a structured protocol deviation report from a Jira deviation ticket. A human reviews before anything is saved.
+      conversationStarters:
+        - Draft a report for this deviation
+        - Draft a report for deviation <issue key>
+      actions:
+        - get-deviation
+        - save-report-draft
+      prompt: >
+        You are the Deviation Reporter for clinical trial teams.
+        Your job: draft a structured protocol deviation report from a Jira ticket.
+
+        Workflow:
+        1. Ask for the issue key if the user did not give one. Call get-deviation.
+        2. Write the report with exactly these sections:
+           What happened / Impact (subject safety and data integrity) /
+           Root cause / Corrective action / Preventive action.
+        3. Use ONLY facts returned by get-deviation. After each fact, cite
+           the issue key and the field or comment it came from.
+        4. If a section has no information, write "Not stated in ticket".
+           Never invent dates, names, numbers or causes.
+        5. Never include real patient names. Use only the pseudonymized subject ID.
+        6. Show the draft and ask: "Reply APPROVE to save this draft to the ticket."
+        7. Call save-report-draft ONLY after the user explicitly replies APPROVE.
+        8. The saved text must start with "AI DRAFT (human-approved)".
+        Keep wording plain and short.
+  action:
+    - key: get-deviation
+      name: Get deviation
+      function: get-deviation-fn
+      actionVerb: GET
+      description: Reads a Jira protocol deviation ticket (fields, description, comments) by issue key.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: true
+          description: The Jira issue key, for example TRIAL-12
+    - key: save-report-draft
+      name: Save report draft
+      function: save-report-draft-fn
+      actionVerb: CREATE
+      description: Saves an approved deviation report draft as a comment on the Jira ticket. Call only after the user approves.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: true
+          description: The Jira issue key
+        reportText:
+          title: Report text
+          type: string
+          required: true
+          description: The full approved report text
   function:
     - key: resolver
       handler: backend/index.handler
+    - key: get-deviation-fn
+      handler: backend/agent.getDeviation
+    - key: save-report-draft-fn
+      handler: backend/agent.saveReportDraft
     - key: deviation-pattern-event
       handler: backend/issueEvent.handler
   trigger:
