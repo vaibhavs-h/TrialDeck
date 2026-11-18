@@ -11,17 +11,23 @@ does not operate its own servers or databases, and it does not send your data to
 service.
 
 ## What the app accesses
-When you install it, the app asks for permission to:
-- read Jira issues and projects (`read:jira-work`),
-- create and update Jira issues (`write:jira-work`),
-- read Confluence page content (`read:confluence-content.all`).
+When you install it, the app asks for standard permissions to:
+- read Jira issues, users, and projects (`read:jira-work`, `read:jira-user`),
+- create and update Jira issues and comments (`write:jira-work`),
+- store app configuration and cached field mappings in Forge storage (`storage:app`),
+- read Confluence protocol pages (`read:page:confluence`),
+- create published deviation report pages in Confluence (`write:page:confluence`, `read:space:confluence`).
 
-It uses these only to show the dashboard and issue panel, and to create tasks you ask it to create.
-It reads and writes only inside your Atlassian site, using the permissions of the person using it.
+It uses these strictly to render the dashboard and issue panel, and to create tasks and reports you explicitly ask it to create.
+It reads and writes only inside your Atlassian site, using the permissions of the person using it (`asUser`).
 
-## What the app stores
-The app does not collect or store personal data outside your Atlassian site. We (the developers) do
-not receive, view or keep any of your site's data.
+## What the app stores in Forge storage
+The app stores only non-personal operational metadata in Atlassian Forge storage:
+- `trialdeck:field_mapping:v1`: Cached Jira custom field IDs (15-minute TTL).
+- `trialdeck:project_scope:v1`: User-selected active Jira project scope.
+- `app_settings`: Configured alert thresholds (e.g., target threshold = 15).
+- Internal operational graph records (linking amendment tasks to protocol versions).
+No personal identifiers, patient records, or external credentials are ever stored.
 
 ## No real patient data
 TrialDeck is intended for synthetic or pseudonymized data only (for example subject IDs such as

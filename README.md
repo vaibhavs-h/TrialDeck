@@ -1,128 +1,100 @@
-# Clinical Trial Operations Hub
+# Clinical Trial Operations Hub (TrialDeck)
 
-Forge app (Jira + Confluence + Rovo) for Codegeist 2026. Log protocol deviations as structured
-Jira issues, see cross-site patterns on a dashboard, and use Rovo agents to draft deviation
-reports and turn protocol amendments into per-site task lists. A human approves all AI output.
+> **Atlassian Codegeist 2026 Hackathon Submission**  
+> AI-powered clinical operations platform unifying Jira, Confluence, and Atlassian Rovo to manage protocol deviations, cross-site pattern clusters, and protocol amendments.
 
-**Stack:** Atlassian Forge, React, Node.js 22 (plain JavaScript), Vite, Recharts, Rovo.
-**Data policy:** synthetic data only, pseudonymized subject IDs.
-
----
-
-## 🏆 Judge Quick Start (5 Minutes)
-
-Judges evaluating this hackathon submission can follow our step-by-step setup guide:
-👉 **Read the full [Judge Setup Guide (SETUP.md)](./SETUP.md)**
-
-- **Zero-Setup Mode:** If installed on a clean Jira instance without any tickets, TrialDeck automatically launches in **Interactive Synthetic Mode** (~12 deviations across 6 sites), demonstrating live charts, KPIs, site cluster alerts, and CAPA tracking out of the box.
-- **Instant CSV Import:** To test live Jira JQL queries, issue panels, and the Rovo agent on your own site in under 60 seconds, import [`sample-tickets.csv`](./sample-tickets.csv) into any Jira project.
+[![Atlassian Forge](https://img.shields.io/badge/Platform-Atlassian%20Forge-blue.svg)](https://developer.atlassian.com/platform/forge/)
+[![Rovo Agents](https://img.shields.io/badge/Rovo-Agents%20%26%20MCP-purple.svg)](https://www.atlassian.com/software/rovo)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## Setup
+## 💡 The Problem
+In clinical trials, protocol deviations (e.g., missed patient visit windows, investigational drug temperature excursions, consent errors) represent substantial regulatory and safety risks. Historically, clinical research coordinators (CRCs) and clinical research associates (CRAs) track these deviations in isolated spreadsheets across investigator sites. As a result:
+- **Systemic cross-site issues are discovered months too late** during sponsor audits.
+- **Protocol amendments** require tedious manual diffing and fragmented task tracking across sites.
+- **Reporting overhead** drains valuable clinician time away from patient care.
 
-Requires Node >= 22.23.4 and Forge CLI 15.x.
+---
 
-```bash
-npm install -g @forge/cli@latest
-forge login
-npm install             # one install for the whole repo
-npm run build:dashboard
+## 🏥 The Solution: TrialDeck
+TrialDeck turns Atlassian Cloud into a real-time **Clinical Trial Operations Hub**:
+1. **Automated Cross-Site Pattern Engine**: Detects repeat incident clusters (e.g., visit window delays at Site 4 and Site 2) in real time.
+2. **Three Specialized Rovo Agents with Human-in-the-Loop Governance**:
+   - **Deviation Reporter**: Formulates structured 5-part regulatory deviation reports citing live ticket data, approved by humans before saving to Jira and Confluence.
+   - **Amendment Analyst**: Diffs Confluence protocol versions and creates deduplicated per-site rollout tasks in Jira upon approval.
+   - **Trial Insights**: Answers natural language questions regarding cross-site signals, CAPA statuses, and rollout metrics.
+3. **Model Context Protocol (MCP) Server**: Exposes read-only clinical operations tools to external AI clients (Claude Desktop, Cursor) via Atlassian's managed MCP server.
+4. **Teamwork Graph Consumer**: Enriches deviation records with cross-product linked work items via the Atlassian Teamwork Graph API.
 
-forge register          # app owner only, once: writes app.id into manifest.yml
-npm run deploy          # builds the dashboard, then forge deploy
-forge install --demo-site   # or: forge install (choose product and site)
-forge tunnel            # live reload (manifest changes need forge deploy)
+---
+
+## 🏆 Codegeist 2026 Prize Mapping
+
+| Prize Category | Module(s) & Implementation in TrialDeck | How It Meets the Requirement |
+| :--- | :--- | :--- |
+| **Best Agents** | `modules.rovo:agent` (`deviation-reporter`, `amendment-analyst`, `trial-insights`), `modules.action` (9 custom actions) | Ships 3 specialized agents solving distinct clinical workflows with strict human approval governance and citation integrity. |
+| **Best MCP** | `modules.rovo:mcp` (`trialdeck-mcp-server`), `skills/trialdeck/SKILL.md`, `MCP_TESTING.md` | Exposes 4 safe, read-only operational tools over the standard Model Context Protocol, consumable by Claude Desktop, Cursor, or internal Rovo agents. |
+| **Best Teamwork Graph** | `src/backend/services/teamworkGraph.js`, `src/backend/agentInsights.js` (`trace-deviation`) | **Consumes** data from the Atlassian Teamwork Graph GraphQL API to enrich deviation traces with cross-product linked items with resilient fallback. |
+
+---
+
+## 🏗️ Architecture
+
+```
+                                  ATLASSIAN CLOUD
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                                                                                 │
+ │   JIRA GLOBAL PAGE (Custom UI)               JIRA ISSUE PANEL (UI Kit)          │
+ │   - Trial Dashboard & KPIs                   - Severity & Subject ID Card       │
+ │   - Cross-Site Trend Chart (Recharts)        - Human-in-the-Loop Report Card    │
+ │   - Repeat Issue Clusters & Insights         - Approve / Request Changes Flow   │
+ │   - Project Scope Selector (Settings)        - Similar Site Deviations          │
+ │                                                                                 │
+ └─────────────────────────┬───────────────────────────────┬───────────────────────┘
+                           │                               │
+                           ▼                               ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                         BACKEND RESOLVERS & SERVICES                            │
+ │  - deviationData.js: Dynamic project auto-detection & case-insensitive fields   │
+ │  - detectPatterns.js: Real-time pattern engine (clusters, spikes, outliers)     │
+ │  - writes.js: KVS storage & validated issue / task creation                     │
+ │  - sampleData.js: 12-ticket high-fidelity synthetic demo mode                   │
+ └─────────────────────────┬───────────────────────────────┬───────────────────────┘
+                           │                               │
+ ┌─────────────────────────┴─────────────┐   ┌─────────────┴───────────────────────┐
+ │         ATLASSIAN ROVO AGENTS         │   │         ROVO MCP SERVER             │
+ │  1. Deviation Reporter                │   │  trialdeck-mcp-server               │
+ │     (get-deviation, save-report)      │   │  - list-deviations                  │
+ │  2. Amendment Analyst                 │   │  - find-cross-site-signals          │
+ │     (analyze-amendment, create-tasks) │   │  - trace-deviation                  │
+ │  3. Trial Insights                    │   │  - site-amendment-status            │
+ │     (find-cross-site-signals, trace)  │   │  Consumable by Claude / Cursor      │
+ └─────────────────────────┬─────────────┘   └─────────────────────────────────────┘
+                           │
+                           ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │               CONFLUENCE CLOUD & ATLASSIAN TEAMWORK GRAPH API                   │
+ │  - confluence.js: Storage XHTML diffing & automated report page publishing      │
+ │  - teamworkGraph.js: GraphQL query for cross-product linked work items          │
+ └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-After manifest or scope changes: `forge deploy`, then `forge install --upgrade`.
+---
 
-## Repository structure
+## ⚡ Judge Quick Start (5 Minutes)
 
-```
-manifest.yml            Forge modules, scopes, resources (Forge requires it at the repo root)
-package.json            The only package.json (backend and dashboard share one install)
-vite.config.mjs         Dashboard build (Vite); tailwind.config.cjs, postcss.config.cjs
-src/backend/            Forge functions (Forge requires handlers under src/)
-  index.js              Resolver entry: every invoke() handler is registered here
-  config/               Constants (issue type, limits)
-  resolvers/            One file per area: deviations, dashboard, amendments
-  services/             Jira and Confluence API helpers
-frontend/
-  panel/                Jira issue panel (Forge UI Kit)
-  dashboard/            Trial dashboard source (Custom UI: React + Vite + Tailwind)
-    index.html               Vite entry page
-    src/components/common/   Shared UI (Shell, Icon)
-    src/modules/             dashboard, coordinator, deviation, amendment
-                             each with pages/, components/ and data/ (mock data)
-    src/hooks/               Data hooks that call the backend
-design/                 Stitch mockups and notes (reference only, not built)
-PRIVACY.md, TERMS.md    Linked from the Marketplace/distribution settings
-```
+Judges evaluating this hackathon submission can follow our step-by-step setup guide:  
+👉 **[Read the Full Judge Setup Guide (SETUP.md)](./SETUP.md)**
 
-Keep Forge function code only in `src/backend/`; the manifest's `backend/...` handler paths are
-resolved relative to `src/`, so a top-level `backend/` directory is not a second Forge source tree.
+1. **Zero-Setup Mode**: If installed on a fresh site without any tickets, TrialDeck automatically launches in **Interactive Synthetic Mode** (~12 deviations across 6 sites), demonstrating live charts, KPIs, site cluster alerts, and CAPA tracking out of the box.
+2. **Instant CSV Import**: Import [`sample-tickets.csv`](./sample-tickets.csv) into any Jira project in under 60 seconds to test live JQL queries, issue panels, and the Rovo agent on your own site.
 
-## Protocol amendment analysis
+---
 
-Dashboard, then **Protocol Amendments** (`#/amendment`). It compares two versions of a Confluence
-protocol page, lists what changed, and builds a per-site task plan (re-consent, IRB approval,
-retraining, form updates). Nothing is written to Jira until a person approves the plan.
-
-To try it:
-1. Create a Confluence page and publish it, then edit it and publish again, so it has two versions.
-2. Make sure the Jira Site field has options (one per site) and project `CLIN` has a Task issue type.
-3. Pick the page and the two versions, then **Analyze amendment**, untick anything that does not apply,
-   and **Approve and create tasks**.
-
-The classification is keyword-based (`src/backend/lib/amendmentAnalysis.js`), so it is a draft for
-review, not a decision. Tasks are labelled `amendment-<pageId>-v<from>-v<to>` so approving the same
-amendment twice does not create duplicates.
-
-## Deviation dashboard and issue panel
-
-The backend reads Protocol Deviation issues and their linked CAPA issues using Jira's paginated
-`/rest/api/3/search/jql` endpoint. Custom field IDs are discovered from Jira metadata once and kept
-in Forge KVS; dashboard resolvers continue to run as the current user, while issue-event
-reconciliation runs as the app. Missing Subject IDs remain missing and are never synthesized.
-
-Created/updated Jira issue events recalculate these project-level rules: 3 deviations at one site in
-30 days; a root cause appearing at 2 or more sites in 30 days (High at 3); a site count at least 2x
-the mean across at least 3 sites, with at least 3 deviations; 2 major deviations at one site in 14
-days; and a repeat of the same site's root cause after linked CAPA resolution within 90 days. Forge
-delivers trigger events asynchronously, potentially up to 3 minutes after the Jira change.
-Project writes are serialized with a short-lived KVS lock and the aggregate/alert pair is committed
-in one KVS transaction. Stored values are capped below Forge's per-value limit (220 KiB); alerts are
-trimmed to the newest entries to fit, while an oversized aggregate fails explicitly rather than
-being silently truncated.
-
-Run local checks with:
-
-```bash
-npm run test:feature2
-$env:ATL_FORGE_ATTRIBUTION_SKILL_NAME='forge-app-builder'; forge lint
-```
-
-The dashboard/panel still requires Jira project `CLIN`, issue type `Protocol Deviation`, and issue
-type `CAPA`; the Subject ID field is assumed to contain pseudonymized values only. CAPA linking is
-identified by linked issue type `CAPA`; a configured link type can further constrain it.
-
-## Linked knowledge graph queries
-
-The `queryKnowledgeGraph` resolver builds a permission-filtered graph from Jira deviations and
-protocol-amendment tasks in `CLIN`. It links deviations to their Site and Protocol Version fields,
-people to issues by Jira assignee/reporter account, and amendment tasks to sites and the amendment
-page/version encoded in their Jira labels. It does not return issue summaries or Subject IDs.
-
-The initial natural-language query supports questions such as "Which sites haven't completed
-Amendment 3 retraining?" It treats Amendment 3 as the target protocol page version `v3` in an
-`amendment-<pageId>-v<from>-v<to>` label, or matches the literal text "Amendment 3". A site is
-reported as incomplete if no matching task exists or its task is not in Jira's Done status category.
-The query uses the current Jira user's visibility, searches at most 500 deviations and 500
-amendment tasks, and returns warnings when site metadata is unavailable or a result cap is reached.
-This is deterministic query parsing, not an LLM; unsupported query shapes return an explicit error.
-
-## Team workflow
-
-`git pull` before starting, push often. One Forge app owner; add collaborators via the Developer
-Console. Roles: frontend, backend, AI/agents.
+## 💻 Tech Stack
+- **Runtime:** Atlassian Forge (Node.js 22 plain JavaScript).
+- **Frontend:** Jira Global Page (Custom UI: React 18, Vite, Tailwind CSS, Recharts); Issue Panel (Forge UI Kit).
+- **Backend:** Forge Resolvers, `@forge/kvs`, `@forge/api`.
+- **AI & Integrations:** Atlassian Rovo Agent, Model Context Protocol (`rovo:mcp`), Confluence REST API v2, Atlassian Teamwork Graph API (GraphQL).
+- **Data Policy:** 100% synthetic data, pseudonymized participant IDs (`SUBJ-xxxx`), zero external network egress (CSP compliant).
