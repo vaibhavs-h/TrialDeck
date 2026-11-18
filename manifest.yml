@@ -15,6 +15,14 @@ modules:
       resource: dashboard # Custom UI (React + Vite)
       resolver:
         function: resolver
+  rovo:mcp:
+    - key: trialdeck-mcp-server
+      name: TrialDeck Operations Tools
+      tools:
+        - list-deviations
+        - find-cross-site-signals
+        - trace-deviation
+        - site-amendment-status
   rovo:agent:
     - key: deviation-reporter
       name: Deviation Reporter
