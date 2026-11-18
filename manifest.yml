@@ -74,6 +74,30 @@ modules:
         8. If create-site-tasks returns remaining > 0, inform the user:
            "Created batch of tasks. N tasks remaining. Reply APPROVE again to create the next batch."
         Keep wording precise and clinical.
+    - key: trial-insights
+      name: Trial Insights
+      description: Clinical trial intelligence agent providing cross-site pattern analysis, deviation traceability, and amendment rollout progress.
+      conversationStarters:
+        - What cross-site signals or patterns are detected?
+        - Trace deviation <issue key>
+        - What is the amendment rollout status across sites?
+      actions:
+        - list-deviations
+        - find-cross-site-signals
+        - trace-deviation
+        - site-amendment-status
+      prompt: >
+        You are the Trial Insights agent for clinical operations teams.
+        Your job: provide operational intelligence across trial sites, deviations, CAPAs, and amendments.
+
+        Workflow:
+        1. Answer ONLY using data returned by your actions. Never guess or hallucinate metrics.
+        2. Always cite specific Jira issue keys (e.g. CLIN-12, CAPA-04) and site names in your answers.
+        3. When a search or filter yields no results, explicitly state "No matching data found".
+        4. When explaining cross-site signals, highlight repeat incident clusters (e.g. visit windows, temp excursions)
+           and state the recommended CRA action.
+        5. After every answer, suggest 2 relevant follow-up questions the coordinator could ask.
+        This agent is strictly read-only and does not perform any writes.
   action:
     - key: get-deviation
       name: Get deviation
@@ -221,6 +245,53 @@ modules:
           type: string
           required: false
           description: Optional target effective date (YYYY-MM-DD)
+    - key: list-deviations
+      name: List deviations
+      function: list-deviations-fn
+      actionVerb: GET
+      description: Lists protocol deviations with optional filters for site, category, and root cause. (Read-only, max 20 items)
+      inputs:
+        site:
+          title: Site
+          type: string
+          required: false
+          description: Filter by site name (e.g. Site 4)
+        category:
+          title: Category
+          type: string
+          required: false
+          description: Filter by category (major or minor)
+        rootCause:
+          title: Root Cause
+          type: string
+          required: false
+          description: Filter by root cause (e.g. Training, Scheduling)
+        days:
+          title: Days Window
+          type: number
+          required: false
+          description: Number of days to look back (default 90)
+    - key: find-cross-site-signals
+      name: Find cross site signals
+      function: cross-site-signals-fn
+      actionVerb: GET
+      description: Analyzes deviations across sites to detect repeat incident clusters and systemic patterns. (Read-only, max 20 items)
+    - key: trace-deviation
+      name: Trace deviation
+      function: trace-deviation-fn
+      actionVerb: GET
+      description: Reads operational context for a deviation including linked CAPA, historical similarities, and report status. (Read-only)
+      inputs:
+        issueKey:
+          title: Issue Key
+          type: string
+          required: true
+          description: The Jira issue key (e.g. TRIAL-101)
+    - key: site-amendment-status
+      name: Site amendment status
+      function: amendment-status-fn
+      actionVerb: GET
+      description: Summarizes protocol amendment implementation progress and rollout tasks across clinical trial sites. (Read-only, max 20 items)
   function:
     - key: resolver
       handler: backend/index.handler
@@ -238,6 +309,14 @@ modules:
       handler: backend/agentAmendment.previewSiteTasks
     - key: create-site-tasks-fn
       handler: backend/agentAmendment.createSiteTasks
+    - key: list-deviations-fn
+      handler: backend/agentInsights.listDeviations
+    - key: cross-site-signals-fn
+      handler: backend/agentInsights.findCrossSiteSignals
+    - key: trace-deviation-fn
+      handler: backend/agentInsights.traceDeviation
+    - key: amendment-status-fn
+      handler: backend/agentInsights.siteAmendmentStatus
     - key: deviation-pattern-event
       handler: backend/issueEvent.handler
   trigger:
