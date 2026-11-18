@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { invoke } from '@forge/bridge';
+
 const topNav = [
   { label: 'Your work', href: '#/' },
   { label: 'Projects', href: '#/' },
@@ -32,6 +35,17 @@ const iconBtn =
   'p-space-xs text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded transition-colors flex items-center justify-center';
 
 export default function Shell({ children, activeSub = 'Overview', activeSide = 'Operational Summary' }) {
+  const [scope, setScope] = useState(null);
+
+  useEffect(() => {
+    invoke('getProjectScope')
+      .then(res => setScope(res))
+      .catch(() => {});
+  }, []);
+
+  const scopeLabel = scope?.isAllProjects
+    ? (scope.detectedProjects?.length ? `All Projects (${scope.detectedProjects.length})` : 'All Projects')
+    : (scope?.selectedProject?.key || 'Active Project');
   return (
     <>
       <div className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-surface-container-lowest border-b border-outline-variant">
@@ -50,7 +64,7 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
             <span className="text-outline-variant">/</span>
             <div className="flex items-center gap-space-xs">
               <span className="font-headline-sm text-headline-sm text-on-surface font-semibold">TrialDeck</span>
-              <span className="text-on-surface-variant font-body-md text-body-md hidden sm:inline">/ Clinical Operations</span>
+              <span className="text-on-surface-variant font-body-md text-body-md hidden sm:inline">/ Clinical Trial Operations</span>
             </div>
             <nav className="hidden xl:flex items-center gap-space-md ml-space-md">
               {topNav.map(({ label, href }) => {
@@ -149,8 +163,10 @@ export default function Shell({ children, activeSub = 'Overview', activeSide = '
           ))}
         </nav>
         <div className="mt-auto pt-space-md border-t border-outline-variant px-space-sm flex items-center justify-between text-outline">
-          <span className="font-code text-code text-[11px]">CLIN Active</span>
-          <Icon name="lock" className="text-[16px]" />
+          <span className="font-code text-code text-[11px] truncate max-w-[170px]" title={scopeLabel}>
+            {scopeLabel}
+          </span>
+          <Icon name="clinical_notes" className="text-[16px] text-primary" />
         </div>
       </aside>
 

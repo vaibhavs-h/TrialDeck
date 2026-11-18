@@ -30,6 +30,15 @@ function customFieldReference(fieldId) {
 }
 
 function baseProjectQuery(projectKey) {
+  if (Array.isArray(projectKey)) {
+    const validKeys = projectKey.map(validateProjectKey);
+    if (validKeys.length === 1) return `project = ${validKeys[0]}`;
+    if (validKeys.length > 1) return `project in (${validKeys.join(', ')})`;
+    return 'project is not null';
+  }
+  if (!projectKey || projectKey === 'ALL') {
+    return 'project is not null';
+  }
   return `project = ${validateProjectKey(projectKey)}`;
 }
 

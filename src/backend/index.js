@@ -32,9 +32,13 @@ import {
 } from './resolvers/writes';
 import { queryKnowledgeGraph } from './resolvers/knowledgeGraph';
 
+import { getActiveProjectScope, setActiveProjectScope } from './lib/projects';
+
 const resolver = new Resolver();
 
 resolver.define('ping', () => ({ ok: true, message: 'Clinical Trial Hub Resolver Active' }));
+resolver.define('getProjectScope', () => getActiveProjectScope('user'));
+resolver.define('setProjectScope', ({ payload }) => setActiveProjectScope(payload?.scopeKey));
 resolver.define('getDeviation', ({ payload }) => getDeviation(payload.issueKey || payload.key));
 resolver.define('getSiteHistory', ({ payload }) => getSiteHistory(payload.site));
 resolver.define('getRelatedDeviations', ({ payload }) =>

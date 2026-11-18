@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { invoke } from '@forge/bridge';
 import { useSettings, useMutation } from '../../../hooks/useDeviations.js';
 import Icon from '../../../components/common/Icon.jsx';
 import ConfirmModal from '../../../components/common/ConfirmModal.jsx';
@@ -7,9 +8,20 @@ export default function SettingsPage() {
   const { data: initialSettings, loading: loadingSettings, refetch } = useSettings();
   const { mutate: doSave, loading: saving, error } = useMutation('saveSettings');
 
+  const [scopeData, setScopeData] = useState(null);
+  const [selectedScope, setSelectedScope] = useState('ALL');
   const [form, setForm] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    invoke('getProjectScope')
+      .then(res => {
+        setScopeData(res);
+        if (res?.selectedScope) setSelectedScope(res.selectedScope);
+      })
+      .catch(() => {});
+  }, []);
 
   // Initialize form when settings load
   const settings = form || initialSettings || {
@@ -26,6 +38,7 @@ export default function SettingsPage() {
   const confirmSave = async () => {
     try {
       await doSave(settings);
+      await invoke('setProjectScope', { scopeKey: selectedScope });
       setConfirmOpen(false);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
@@ -62,6 +75,25 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-[#DFE1E6]">
+          <div className="md:col-span-2">
+            <label className="block font-headline-sm text-headline-sm text-[#172B4D] mb-1">
+              Active Project Scope
+            </label>
+            <p className="font-body-md text-[12px] text-[#6B778C] mb-2">
+              Select which Jira project's protocol deviations to track in the hub, or aggregate all detected projects.
+            </p>
+            <select
+              value={selectedScope}
+              onChange={(e) => setSelectedScope(e.target.value)}
+              className="h-9 px-3 border border-[#DFE1E6] rounded font-body-md text-body-md bg-white max-w-sm w-full"
+            >
+              <option value="ALL">All Projects (Multi-Project Hub)</option>
+              {(scopeData?.detectedProjects || []).map(p => (
+                <option key={p.key} value={p.key}>{p.name} ({p.key})</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block font-headline-sm text-headline-sm text-[#172B4D] mb-1">
               Target Open Deviations Threshold

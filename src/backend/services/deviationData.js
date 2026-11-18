@@ -111,16 +111,29 @@ export async function fetchLinkedCapas(issues, capaIssueType, as = 'user') {
   return capaByKey;
 }
 
-export async function loadDeviationData(projectKey = 'CLIN', options = {}) {
-  validateProjectKey(projectKey);
+import { getActiveProjectScope } from '../lib/projects.js';
+
+export async function loadDeviationData(projectKey = null, options = {}) {
   const as = options.as === 'app' ? 'app' : 'user';
+  let targetProject = projectKey;
+  let activeScope = null;
+
+  if (!targetProject || targetProject === 'CLIN') {
+    activeScope = await getActiveProjectScope(as);
+    if (activeScope.targetProjectKeys && activeScope.targetProjectKeys.length > 0) {
+      targetProject = activeScope.isAllProjects ? activeScope.targetProjectKeys : activeScope.targetProjectKeys[0];
+    } else {
+      targetProject = 'ALL';
+    }
+  }
+
   const config = await getFeatureConfig(as);
   const fieldMap = config.fieldMap;
   const fields = [...new Set([...DEVIATION_FIELDS, ...customFieldIds(fieldMap)])];
   const query = options.days === null
-    ? deviationsInProject(projectKey, config.deviationIssueType, options.filters || {}, fieldMap)
+    ? deviationsInProject(targetProject, config.deviationIssueType, options.filters || {}, fieldMap)
     : deviationsInWindow(
-      projectKey,
+      targetProject,
       config.deviationIssueType,
       options.days ?? 90,
       options.filters || {},
@@ -135,7 +148,7 @@ export async function loadDeviationData(projectKey = 'CLIN', options = {}) {
   const deviations = rawIssues.map(issue =>
     normalizeDeviation(issue, mapping, capaByKey, config)
   );
-  return { config, fieldMap, rawIssues, capaByKey, deviations };
+  return { config, fieldMap, rawIssues, capaByKey, deviations, projectScope: activeScope };
 }
 
 export async function loadIssueWithCapa(issueKey, as = 'user') {

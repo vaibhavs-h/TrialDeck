@@ -5,6 +5,8 @@ import {
   fieldText,
   findCustomFieldId
 } from '../lib/jira';
+import { getResolvedFieldMapping } from '../lib/fields';
+import { getActiveProjectScope } from '../lib/projects';
 
 /**
  * Converts a plain string to simple Atlassian Document Format (ADF)
@@ -39,39 +41,31 @@ export function toADF(text) {
  * Returns real dropdown options for site, category, Protocol version, Root cause, Report status,
  * Protocol Deviation issue type id, Task issue type id, and the CLIN project id.
  */
-export async function getCreateMeta() {
-  console.log('getCreateMeta v1');
-  // 1. Get Project ID for CLIN
-  const projectRes = await api.asUser().requestJira(route`/rest/api/3/project/CLIN`);
+export async function getCreateMeta(requestedProjectKey = null) {
+  console.log('getCreateMeta dynamic');
+  const scope = await getActiveProjectScope('user');
+  const projectKey = requestedProjectKey
+    || (scope.targetProjectKeys && scope.targetProjectKeys[0])
+    || (scope.detectedProjects && scope.detectedProjects[0]?.key)
+    || 'CLIN';
+
+  // 1. Get Project metadata
+  const projectRes = await api.asUser().requestJira(route`/rest/api/3/project/${projectKey}`);
   if (!projectRes.ok) {
     const errorText = await projectRes.text();
-    throw new Error(`Failed to fetch project CLIN (status ${projectRes.status}): ${errorText}`);
+    throw new Error(`Failed to fetch project ${projectKey} (status ${projectRes.status}): ${errorText}`);
   }
   const projectData = await projectRes.json();
   const projectId = projectData.id;
 
-  // 2. Find issue types for CLIN
+  // 2. Find issue types
   const issueTypes = projectData.issueTypes || [];
   const deviationType = issueTypes.find(t => t.name.trim().toLowerCase() === ISSUE_TYPE.toLowerCase());
   const taskType = issueTypes.find(t => t.name.trim().toLowerCase() === 'task') || issueTypes.find(t => !t.subtask && t.id !== deviationType?.id);
 
-  // 3. Fetch custom fields metadata
-  const fieldResponse = await api.asUser().requestJira(route`/rest/api/3/field`);
-  if (!fieldResponse.ok) {
-    const errorText = await fieldResponse.text();
-    throw new Error(`Failed to fetch fields (status ${fieldResponse.status}): ${errorText}`);
-  }
-  const allFields = await fieldResponse.json();
-
-  const fieldMapping = {
-    site: findCustomFieldId(allFields, 'site'),
-    category: findCustomFieldId(allFields, 'category'),
-    subjectId: findCustomFieldId(allFields, 'Subject ID'),
-    protocolVersion: findCustomFieldId(allFields, 'Protocol version'),
-    rootCause: findCustomFieldId(allFields, 'Root cause'),
-    reportStatus: findCustomFieldId(allFields, 'Report status'),
-    dateDetected: findCustomFieldId(allFields, 'date detected')
-  };
+  // 3. Fetch custom fields metadata using unified mapper
+  const resolved = await getResolvedFieldMapping({ as: 'user' });
+  const fieldMapping = resolved.mapping;
 
   // 4. Fetch create metadata for Protocol Deviation
   let deviationFieldsMeta = {};
@@ -132,11 +126,10 @@ export async function getCreateMeta() {
 
   return {
     projectId,
-    projectKey: 'CLIN',
+    projectKey,
     deviationTypeId: deviationType?.id || null,
     taskTypeId: taskType?.id || null,
     fieldMapping,
-    allFields: allFields.map(f => ({ id: f.id, name: f.name })),
     options: {
       site: siteOptions,
       category: categoryOptions,
@@ -150,10 +143,11 @@ export async function getCreateMeta() {
 /**
  * Resolver: getAssignableUsers(query)
  */
-export async function getAssignableUsers(query = '') {
-  console.log('getAssignableUsers v1');
+export async function getAssignableUsers(query = '', projectKey = null) {
+  const scope = await getActiveProjectScope('user');
+  const targetProject = projectKey || (scope.targetProjectKeys && scope.targetProjectKeys[0]) || 'CLIN';
   const q = encodeURIComponent(query || '');
-  const res = await api.asUser().requestJira(route`/rest/api/3/user/assignable/search?project=CLIN&query=${q}`);
+  const res = await api.asUser().requestJira(route`/rest/api/3/user/assignable/search?project=${targetProject}&query=${q}`);
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Failed to search users (status ${res.status}): ${errorText}`);
