@@ -1,4 +1,5 @@
-import api, { route, storage } from '@forge/api';
+import api, { route } from '@forge/api';
+import { kvs } from '@forge/kvs';
 import { ISSUE_TYPE } from '../config/constants';
 import {
   escapeJql,
@@ -42,7 +43,6 @@ export function toADF(text) {
  * Protocol Deviation issue type id, Task issue type id, and the CLIN project id.
  */
 export async function getCreateMeta(requestedProjectKey = null) {
-  console.log('getCreateMeta dynamic');
   const scope = await getActiveProjectScope('user');
   const projectKey = requestedProjectKey
     || (scope.targetProjectKeys && scope.targetProjectKeys[0])
@@ -165,7 +165,6 @@ export async function getAssignableUsers(query = '', projectKey = null) {
  * Resolver: createDeviation(payload)
  */
 export async function createDeviation(payload) {
-  console.log('createDeviation v1');
   const {
     summary,
     description,
@@ -311,7 +310,6 @@ export async function createDeviation(payload) {
  * Resolver: createCapaTask({ deviationKey, title, assigneeAccountId, dueDate, description })
  */
 export async function createCapaTask(payload) {
-  console.log('createCapaTask v1');
   const { deviationKey, title, assigneeAccountId, dueDate, description } = payload || {};
   if (!deviationKey) throw new Error('deviationKey is required.');
   if (!title || !title.trim()) throw new Error('Title is required.');
@@ -389,7 +387,6 @@ export async function createCapaTask(payload) {
  * Resolver: createSiteTask({ site, title, assigneeAccountId, dueDate, type })
  */
 export async function createSiteTask(payload) {
-  console.log('createSiteTask v1');
   const { site, title, assigneeAccountId, dueDate, type } = payload || {};
   if (!title || !title.trim()) throw new Error('Task title is required.');
 
@@ -431,7 +428,6 @@ export async function createSiteTask(payload) {
  * Posts a formal escalation comment and raises priority to High if allowed.
  */
 export async function escalateCapa(payload) {
-  console.log('escalateCapa v1');
   const { issueKey } = payload || {};
   if (!issueKey) throw new Error('issueKey is required.');
 
@@ -478,7 +474,6 @@ export async function escalateCapa(payload) {
  * Resolver: updateReportStatus({ issueKey, status })
  */
 export async function updateReportStatus(payload) {
-  console.log('updateReportStatus v1');
   const { issueKey, status } = payload || {};
   if (!issueKey) throw new Error('issueKey is required.');
   if (!status) throw new Error('Status is required.');
@@ -529,7 +524,6 @@ export async function updateReportStatus(payload) {
  * Resolver: transitionIssue({ issueKey, targetStatus })
  */
 export async function transitionIssue(payload) {
-  console.log('transitionIssue v1');
   const { issueKey, targetStatus } = payload || {};
   if (!issueKey) throw new Error('issueKey is required.');
 
@@ -579,7 +573,6 @@ export async function transitionIssue(payload) {
  * Resolver: updateDeviation({ issueKey, fields })
  */
 export async function updateDeviation(payload) {
-  console.log('updateDeviation v1');
   const { issueKey, fields } = payload || {};
   if (!issueKey) throw new Error('issueKey is required.');
   if (!fields) throw new Error('Fields object is required.');
@@ -622,14 +615,13 @@ export async function updateDeviation(payload) {
  * Resolver: getSettings()
  */
 export async function getSettings() {
-  console.log('getSettings v1');
   const defaultSettings = {
     overdueThresholdDays: 0,
     targetThreshold: 15,
     repeatIssueThreshold: 2
   };
   try {
-    const saved = await storage.get('app_settings');
+    const saved = await kvs.get('app_settings');
     return { ...defaultSettings, ...(saved || {}) };
   } catch (e) {
     console.warn('Could not read settings from storage:', e.message);
@@ -641,7 +633,6 @@ export async function getSettings() {
  * Resolver: saveSettings(newSettings)
  */
 export async function saveSettings(payload) {
-  console.log('saveSettings v1');
   const { overdueThresholdDays, targetThreshold, repeatIssueThreshold } = payload || {};
   const settingsToSave = {
     overdueThresholdDays: Number(overdueThresholdDays ?? 0),
@@ -649,6 +640,6 @@ export async function saveSettings(payload) {
     repeatIssueThreshold: Number(repeatIssueThreshold ?? 2)
   };
 
-  await storage.set('app_settings', settingsToSave);
+  await kvs.set('app_settings', settingsToSave);
   return { ok: true, settings: settingsToSave };
 }
