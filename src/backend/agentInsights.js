@@ -3,6 +3,7 @@ import { detectPatterns } from './engine/detectPatterns.js';
 import { getFeatureConfig } from './services/deviationData.js';
 import { searchAll } from './lib/jira.js';
 import { SAMPLE_DEVIATIONS } from './services/sampleData.js';
+import { fetchTeamworkGraphContext } from './services/teamworkGraph.js';
 
 /**
  * Action: list-deviations (GET)
@@ -157,6 +158,14 @@ export async function traceDeviation(payload) {
       // Best-effort lookup
     }
 
+    // Optional enrichment via Atlassian Teamwork Graph API (if enabled on site)
+    let teamworkGraphData = null;
+    try {
+      teamworkGraphData = await fetchTeamworkGraphContext(issueKey);
+    } catch (ignore) {
+      // Fallback
+    }
+
     return {
       deviation: {
         key: deviation.key,
@@ -179,6 +188,7 @@ export async function traceDeviation(payload) {
       } : null,
       similarDeviations: similar,
       similarCount: similar.length,
+      teamworkGraph: teamworkGraphData,
     };
   } catch (error) {
     return { error: `Trace deviation failed: ${error.message}` };

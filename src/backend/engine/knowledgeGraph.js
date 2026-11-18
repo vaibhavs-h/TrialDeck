@@ -1,3 +1,10 @@
+/**
+ * TrialDeck Internal Operational Knowledge Graph (Forge Storage)
+ * Note: This module manages our app's internal operational links (deviations, amendment
+ * tasks, and sites) stored in Forge storage. For external Atlassian Teamwork Graph API
+ * integrations, see src/backend/services/teamworkGraph.js.
+ */
+
 import { fieldText } from '../lib/jira.js';
 
 const AMENDMENT_LABEL = /^amendment-(\d+)-v(\d+)-v(\d+)$/i;
