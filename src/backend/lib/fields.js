@@ -105,6 +105,11 @@ export function findFieldByAliases(allFields, aliases) {
   return null;
 }
 
+export function matchCustomField(allFields, aliases) {
+  const field = findFieldByAliases(allFields, aliases);
+  return field?.id || null;
+}
+
 export function mapFieldsFromList(allFields) {
   const mapping = {};
   const missing = [];

@@ -347,6 +347,13 @@ export function getSampleDashboardData() {
         summary: 'Site 4 and Site 2 exhibit repeat protocol deviations regarding patient visit windows.',
         recommendation: 'Initiate coordinator retraining on patient reminder workflows.',
       },
+      {
+        id: 'sample-alert-2',
+        rule: 'CROSS_SITE_ROOT_CAUSE',
+        title: 'Cross-Site Spike: Training Root Cause',
+        summary: 'Multiple clinical sites logged deviations linked to Staff Training within the last 30 days.',
+        recommendation: 'Deploy standardized protocol retraining across all investigator sites.',
+      },
     ],
     insight: {
       site: 'Site 4 & Site 2',
