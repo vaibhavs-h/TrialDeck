@@ -7,6 +7,18 @@ reports and turn protocol amendments into per-site task lists. A human approves 
 **Stack:** Atlassian Forge, React, Node.js 22 (plain JavaScript), Vite, Recharts, Rovo.
 **Data policy:** synthetic data only, pseudonymized subject IDs.
 
+---
+
+## 🏆 Judge Quick Start (5 Minutes)
+
+Judges evaluating this hackathon submission can follow our step-by-step setup guide:
+👉 **Read the full [Judge Setup Guide (SETUP.md)](./SETUP.md)**
+
+- **Zero-Setup Mode:** If installed on a clean Jira instance without any tickets, TrialDeck automatically launches in **Interactive Synthetic Mode** (~12 deviations across 6 sites), demonstrating live charts, KPIs, site cluster alerts, and CAPA tracking out of the box.
+- **Instant CSV Import:** To test live Jira JQL queries, issue panels, and the Rovo agent on your own site in under 60 seconds, import [`sample-tickets.csv`](./sample-tickets.csv) into any Jira project.
+
+---
+
 ## Setup
 
 Requires Node >= 22.23.4 and Forge CLI 15.x.
