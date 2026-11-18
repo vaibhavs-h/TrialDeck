@@ -141,12 +141,13 @@ export async function saveReportDraft(payload, context) {
     );
     if (!res.ok) return { error: `Could not save comment: HTTP ${res.status}` };
 
-    // Update report status to Approved if custom field is mapped
+    // Update report status to Draft (since a report has been drafted and saved as comment)
+    // Human investigator will approve or request changes via the issue panel or subsequent confirmation
     let statusUpdated = false;
     try {
         const { mapping } = await getResolvedFieldMapping('user');
         if (mapping?.reportStatus) {
-            // Attempt to fetch createmeta/editmeta or set directly
+            // Attempt to update Report status to Draft
             await api.asUser().requestJira(
                 route`/rest/api/3/issue/${key}`,
                 {
@@ -154,7 +155,7 @@ export async function saveReportDraft(payload, context) {
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                     body: JSON.stringify({
                         fields: {
-                            [mapping.reportStatus]: { value: 'Approved' },
+                            [mapping.reportStatus]: { value: 'Draft' },
                         },
                     }),
                 }
@@ -162,10 +163,10 @@ export async function saveReportDraft(payload, context) {
             statusUpdated = true;
         }
     } catch (ignore) {
-        // Status update is best-effort; don't fail report draft saving if option id/value doesn't match
+        // Status update is best-effort; don't fail report draft saving if option doesn't exist
     }
 
-    return { saved: true, issueKey: key, statusUpdated };
+    return { saved: true, issueKey: key, status: 'Draft', statusUpdated };
 }
 
 // ---- action 3: find similar deviations ----
