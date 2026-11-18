@@ -1,356 +1,242 @@
 import api, { route } from '@forge/api';
-import { ISSUE_TYPE } from '../config/constants';
 import {
   escapeJql,
-  getIssue,
-  searchAll,
   fieldText,
-  findCustomFieldId,
-  validateRequiredField
-} from '../lib/jira';
-import { normalizeDeviation } from '../lib/mapper';
+  searchAll,
+  validateRequiredField,
+} from '../lib/jira.js';
+import { deriveCapaStatus, isCapaOverdue } from '../lib/mapper.js';
+import {
+  getFeatureConfig,
+  loadDeviationData,
+  loadIssueWithCapa,
+} from '../services/deviationData.js';
 
-const OPTIONAL_FIELD_NAMES = [
-  'Subject ID',
-  'Protocol version',
-  'date detected',
-  'Root cause',
-  'Report status'
-];
-const REQUIRED_FIELD_NAMES = [
-  'site',
-  'category'
-];
-const ALL_FIELD_NAMES = [...REQUIRED_FIELD_NAMES, ...OPTIONAL_FIELD_NAMES];
-
-async function getFieldMapping() {
-  const fieldResponse = await api.asUser().requestJira(route`/rest/api/3/field`);
-  if (!fieldResponse.ok) {
-    const errorText = await fieldResponse.text();
-    throw new Error(`Failed to fetch Jira fields (status ${fieldResponse.status}): ${errorText}`);
-  }
-  const fieldsData = await fieldResponse.json();
-  const mapping = {};
-  for (const name of ALL_FIELD_NAMES) {
-    mapping[name] = findCustomFieldId(fieldsData, name);
-  }
-  return { mapping, fieldsData };
+async function getFieldMapping(as = 'user') {
+  const config = await getFeatureConfig(as);
+  const mapping = config.fieldMap;
+  validateRequiredField(mapping.site, 'Site');
+  validateRequiredField(mapping.category, 'Category');
+  return { mapping, config };
 }
 
-/**
- * Resolver: getDeviations({ site, days, category })
- */
 export async function getDeviations(payload = {}) {
-  console.log('getDeviations v2');
   const siteFilter = payload?.site || payload?.siteFilter;
   const days = payload?.days ? Number(payload.days) : 90;
   const categoryFilter = payload?.category;
-  const { mapping, fieldsData } = await getFieldMapping();
-
-  validateRequiredField(mapping['site'], 'site', fieldsData);
-  validateRequiredField(mapping['category'], 'category', fieldsData);
-
-  let jql = `issuetype = "${ISSUE_TYPE}"`;
-  if (siteFilter && siteFilter !== 'all') {
-    jql += ` AND "${mapping['site']}" = "${escapeJql(siteFilter)}"`;
-  }
-  if (categoryFilter && categoryFilter !== 'all') {
-    jql += ` AND "${mapping['category']}" = "${escapeJql(categoryFilter)}"`;
-  }
-  if (days && days > 0) {
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    jql += ` AND created >= "${startDate}"`;
-  }
-  jql += ` ORDER BY created DESC`;
-
-  const fields = ['summary', 'status', 'created', 'duedate', 'assignee', 'reporter', ...Object.values(mapping).filter(Boolean)];
-  const issues = await searchAll(jql, fields);
-  const deviations = issues.map(i => normalizeDeviation(i, mapping));
-
-  // Compute all distinct sites
-  const allSites = [...new Set(deviations.map(d => d.site).filter(s => s && s !== 'Unassigned'))];
-
-  const now = new Date();
-  const openDeviations = deviations.filter(d => !d.isDone);
+  const { capaByKey, deviations } = await loadDeviationData('CLIN', {
+    as: 'user',
+    days: Number.isInteger(days) && days > 0 ? days : 90,
+    filters: {
+      site: siteFilter && siteFilter !== 'all' ? siteFilter : undefined,
+      category: categoryFilter && categoryFilter !== 'all' ? categoryFilter : undefined,
+    },
+  });
+  const allSites = [...new Set(deviations.map(item => item.site).filter(site => site && site !== 'Unassigned'))];
+  const openDeviations = deviations.filter(item => !item.isDone);
+  const today = new Date().toISOString().slice(0, 10);
+  const overdueCapas = Object.values(capaByKey).filter(capa => isCapaOverdue(
+    capa.fields?.duedate,
+    capa.fields?.status?.statusCategory?.key || capa.fields?.status?.statusCategory?.name,
+    today,
+  ));
   const kpis = {
     open: openDeviations.length,
     total: deviations.length,
-    major: openDeviations.filter(d => d.category === 'major').length,
-    overdueCapas: deviations.filter(d => d.dueDate && new Date(d.dueDate) < now && !d.isDone).length,
-    pendingTasks: openDeviations.length
+    major: openDeviations.filter(item => item.category === 'major').length,
+    overdueCapas: overdueCapas.length,
+    pendingTasks: openDeviations.length,
   };
-
-  // Weekly trend for deviations (last 12 weeks)
-  const today = new Date();
-  const currentWeek = Math.ceil((Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))) / 7);
-  const weeklyCounts = {};
-  for (let w = currentWeek - 11; w <= currentWeek; w++) {
-    weeklyCounts[w] = 0;
+  const weeklyTrend = Array(12).fill(0);
+  const now = Date.now();
+  for (const deviation of deviations) {
+    const detectedAt = Date.parse(deviation.dateDetected || deviation.created || '');
+    if (!Number.isFinite(detectedAt)) continue;
+    const weeksAgo = Math.floor((now - detectedAt) / (7 * 86_400_000));
+    if (weeksAgo >= 0 && weeksAgo < weeklyTrend.length) weeklyTrend[11 - weeksAgo]++;
   }
-  deviations.forEach(d => {
-    const dateVal = d.dateDetected || d.created;
-    if (dateVal) {
-      const dObj = new Date(dateVal);
-      const week = Math.ceil((Math.floor((dObj - new Date(dObj.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))) / 7);
-      if (weeklyCounts[week] !== undefined) {
-        weeklyCounts[week]++;
-      }
-    }
-  });
-
-  const weeklyTrend = Object.values(weeklyCounts);
-
   return { deviations, kpis, trend: weeklyTrend, allSites };
 }
 
-/**
- * Resolver: getDeviation(issueKey)
- */
 export async function getDeviation(issueKey) {
-  console.log(`getDeviation v2 - fetching ${issueKey}`);
-  if (!issueKey) throw new Error('issueKey is required for getDeviation');
-  const { mapping } = await getFieldMapping();
-  const issue = await getIssue(issueKey);
-
-  // Fetch comments
+  if (!issueKey) throw new Error('issueKey is required for getDeviation.');
+  const { deviation: normalized } = await loadIssueWithCapa(issueKey, 'user');
   let comments = [];
   try {
-    const commentsRes = await api.asUser().requestJira(route`/rest/api/3/issue/${issueKey}/comment`);
-    if (commentsRes.ok) {
-      const commentsData = await commentsRes.json();
-      comments = (commentsData.comments || []).map(c => {
+    const response = await api.asUser().requestJira(
+      route`/rest/api/3/issue/${issueKey}/comment`,
+      { headers: { Accept: 'application/json' } },
+    );
+    if (response.ok) {
+      const data = await response.json();
+      comments = (data.comments || []).map(comment => {
         let text = '';
-        if (typeof c.body === 'string') {
-          text = c.body;
-        } else if (c.body?.content) {
-          text = c.body.content.map(p => p.content?.map(t => t.text).join('')).filter(Boolean).join('\n');
+        if (typeof comment.body === 'string') {
+          text = comment.body;
+        } else if (comment.body?.content) {
+          text = comment.body.content
+            .map(paragraph => paragraph.content?.map(item => item.text).join(''))
+            .filter(Boolean)
+            .join('\n');
         } else {
-          text = fieldText(c.body);
+          text = fieldText(comment.body);
         }
-        const authorName = c.author?.displayName || 'User';
+        const authorName = comment.author?.displayName || 'User';
         return {
-          id: c.id,
+          id: comment.id,
           name: authorName,
           author: authorName,
-          initials: authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+          initials: authorName.split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase(),
           role: 'Clinical Monitor',
-          time: c.created ? new Date(c.created).toLocaleDateString() : '',
-          created: c.created,
-          text: text || 'No comment text'
+          time: comment.created ? new Date(comment.created).toLocaleDateString() : '',
+          created: comment.created,
+          text: text || 'No comment text',
         };
       });
     }
-  } catch (err) {
-    console.warn(`Could not load comments for ${issueKey}:`, err);
+  } catch {
+    console.warn(`Could not load comments for ${issueKey}.`);
   }
 
-  const normalized = normalizeDeviation(issue, mapping);
-
-  // Issue links / CAPA
-  let capa = null;
-  const issueLinks = issue.fields?.issuelinks || [];
-  for (const link of issueLinks) {
-    const linkedIssue = link.outwardIssue || link.inwardIssue;
-    if (linkedIssue) {
-      capa = {
-        id: linkedIssue.key,
-        summary: linkedIssue.fields?.summary || '',
-        status: linkedIssue.fields?.status?.name || 'In Progress',
-        owner: linkedIssue.fields?.assignee?.displayName || 'Safety Committee',
-        badge: linkedIssue.fields?.status?.name || 'Linked CAPA'
-      };
-      break;
-    }
-  }
-
-  // Related deviations at same site
-  let related = [];
-  if (normalized.site && normalized.site !== 'Unassigned') {
-    related = await getRelatedDeviations(normalized.site, issueKey);
-  }
-
-  return {
-    ...normalized,
-    comments,
-    capa,
-    related,
-    similar: related.slice(0, 5)
-  };
+  const related = normalized.site && normalized.site !== 'Unassigned'
+    ? await getRelatedDeviations(normalized.site, issueKey)
+    : [];
+  return { ...normalized, comments, related, similar: related.slice(0, 5) };
 }
 
-/**
- * Resolver: getRelatedDeviations(site, excludeKey)
- */
 export async function getRelatedDeviations(site, excludeKey) {
   if (!site || site === 'Unassigned') return [];
-  const { mapping } = await getFieldMapping();
-  let jql = `issuetype = "${ISSUE_TYPE}" AND "${mapping['site']}" = "${escapeJql(site)}"`;
-  if (excludeKey) {
-    jql += ` AND key != "${escapeJql(excludeKey)}"`;
-  }
-  jql += ` ORDER BY created DESC`;
-
-  const fields = ['summary', 'status', 'created', 'duedate', ...Object.values(mapping).filter(Boolean)];
-  const issues = await searchAll(jql, fields, 10);
-  return issues.map(i => normalizeDeviation(i, mapping));
+  const { deviations } = await loadDeviationData('CLIN', {
+    as: 'user',
+    days: null,
+    filters: { site },
+    max: 100,
+  });
+  return deviations.filter(deviation => deviation.key !== excludeKey);
 }
 
-/**
- * Resolver: getSites()
- */
 export async function getSites() {
-  console.log('getSites v2');
-  const { mapping } = await getFieldMapping();
-  const jql = `issuetype = "${ISSUE_TYPE}"`;
-  const issues = await searchAll(jql, ['status', 'created', mapping['site'], mapping['category']]);
-
-  const siteMap = {};
-  for (const issue of issues) {
-    const site = fieldText(issue.fields[mapping['site']]) || 'Unassigned';
-    const cat = fieldText(issue.fields[mapping['category']]).trim().toLowerCase();
-    const isDone = issue.fields?.status?.statusCategory?.key === 'done';
-    if (!siteMap[site]) {
-      siteMap[site] = { id: site, name: site, total: 0, open: 0, major: 0, minor: 0, flagged: false };
-    }
-    siteMap[site].total++;
-    if (!isDone) siteMap[site].open++;
-    if (cat === 'major') siteMap[site].major++;
-    else siteMap[site].minor++;
-    if (siteMap[site].total > 5) siteMap[site].flagged = true;
+  const { deviations } = await loadDeviationData('CLIN', { as: 'user', days: null });
+  const siteMap = new Map();
+  for (const deviation of deviations) {
+    const site = deviation.site || 'Unassigned';
+    const current = siteMap.get(site) || {
+      id: site,
+      name: site,
+      total: 0,
+      open: 0,
+      major: 0,
+      minor: 0,
+      flagged: false,
+    };
+    current.total++;
+    if (!deviation.isDone) current.open++;
+    if (deviation.category === 'major') current.major++;
+    if (deviation.category === 'minor') current.minor++;
+    current.flagged = current.total > 5;
+    siteMap.set(site, current);
   }
-
-  return Object.values(siteMap).sort((a, b) => b.total - a.total);
+  return [...siteMap.values()].sort((left, right) => right.total - left.total);
 }
 
-/**
- * Resolver: getCapas()
- */
 export async function getCapas() {
-  console.log('getCapas v2');
-  const { mapping } = await getFieldMapping();
-  // Issues with due date or marked with CAPA requirement
-  const jql = `issuetype = "${ISSUE_TYPE}" AND (duedate is not EMPTY OR "${mapping['category']}" = "major") ORDER BY duedate ASC`;
-  const issues = await searchAll(jql, ['summary', 'status', 'created', 'duedate', 'assignee', ...Object.values(mapping).filter(Boolean)]);
-
-  const now = new Date();
-  return issues.map(i => {
-    const norm = normalizeDeviation(i, mapping);
-    const dueDate = norm.dueDate ? new Date(norm.dueDate) : null;
-    const isOverdue = dueDate && dueDate < now && !norm.isDone;
-    const daysDiff = dueDate ? Math.round(Math.abs(dueDate - now) / (1000 * 60 * 60 * 24)) : null;
-
-    let dueLabel = 'No CAPA due date';
-    let dueTone = 'normal';
-    if (norm.isDone) {
-      dueLabel = 'Closed';
-      dueTone = 'closed';
-    } else if (isOverdue) {
-      dueLabel = `Overdue by ${daysDiff}d`;
-      dueTone = 'overdue';
-    } else if (dueDate) {
-      dueLabel = daysDiff <= 1 ? 'Tomorrow' : `Due ${dueDate.toLocaleDateString()}`;
-      dueTone = daysDiff <= 3 ? 'soon' : 'normal';
-    }
-
+  const { deviations, capaByKey } = await loadDeviationData('CLIN', { as: 'user', days: null });
+  const today = new Date().toISOString().slice(0, 10);
+  return Object.values(capaByKey).map(capa => {
+    const related = deviations.find(deviation => deviation.capa?.key === capa.key);
+    const statusCategory = capa.fields?.status?.statusCategory?.key
+      || capa.fields?.status?.statusCategory?.name
+      || 'unknown';
+    const isOverdue = isCapaOverdue(capa.fields?.duedate, statusCategory, today);
+    const capaStatus = deriveCapaStatus(capa.fields?.duedate, statusCategory.toLowerCase() === 'done');
+    const assignee = capa.fields?.assignee?.displayName || 'Unassigned';
+    const created = Date.parse(capa.fields?.created || '');
+    const ageDays = Number.isFinite(created)
+      ? Math.max(0, Math.floor((Date.now() - created) / 86_400_000))
+      : 0;
     return {
-      id: norm.key,
-      key: norm.key,
-      subject: norm.subjectId,
-      site: norm.site,
-      summary: norm.summary,
+      id: capa.key,
+      key: capa.key,
+      subject: related?.subjectId || null,
+      site: related?.site || 'Unassigned',
+      summary: capa.fields?.summary || '',
       pi: 'Study Investigator',
-      severity: norm.category === 'major' ? 'Major' : 'Minor',
-      category: norm.category,
-      status: norm.status,
-      statusTone: norm.isDone ? 'green' : (isOverdue ? 'red' : 'blue'),
-      dueDate: norm.dueDate,
-      dueLabel,
-      dueNote: norm.dueDate ? `Target: ${new Date(norm.dueDate).toLocaleDateString()}` : 'Target: Not set',
-      dueTone,
-      owner: norm.assignee.name,
-      initials: norm.assignee.initials,
+      severity: related?.category === 'major' ? 'Major' : 'Minor',
+      category: related?.category || 'unknown',
+      status: capa.fields?.status?.name || 'Open',
+      statusTone: statusCategory.toLowerCase() === 'done' ? 'green' : (isOverdue ? 'red' : 'blue'),
+      dueDate: capa.fields?.duedate || null,
+      dueLabel: capaStatus.label,
+      dueNote: capa.fields?.duedate ? `Target: ${capa.fields.duedate}` : 'Target: Not set',
+      dueTone: isOverdue ? 'overdue' : capaStatus.tone,
+      owner: assignee,
+      initials: assignee.split(/\s+/).filter(Boolean).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'UN',
       avatar: '#0052CC',
-      age: `${norm.daysOpen} days`,
-      isOverdue
+      age: `${ageDays} days`,
+      isOverdue,
     };
   });
 }
 
-/**
- * Resolver: getSiteTasks(site)
- */
 export async function getSiteTasks(site) {
-  console.log(`getSiteTasks v2 for ${site || 'all'}`);
-  const { mapping } = await getFieldMapping();
-
-  let jql = `project = CLIN`;
+  const { mapping, config } = await getFieldMapping();
+  let jql = 'project = CLIN';
   if (site && site !== 'all') {
-    jql += ` AND (site ~ "${escapeJql(site)}" OR text ~ "${escapeJql(site)}")`;
+    const fieldNumber = /^customfield_(\d+)$/.exec(mapping.site)?.[1];
+    if (!fieldNumber) throw new Error('The stored Site field mapping is invalid.');
+    jql += ` AND (cf[${fieldNumber}] ~ "${escapeJql(site)}" OR text ~ "${escapeJql(site)}")`;
   }
-  jql += ` ORDER BY duedate ASC`;
+  jql += ' ORDER BY duedate ASC';
 
-  let issues = [];
+  let issues;
   try {
-    issues = await searchAll(jql, ['summary', 'status', 'duedate', 'assignee', 'priority', mapping['site']]);
-  } catch (e) {
-    console.warn('getSiteTasks search failed, falling back to Protocol Deviations:', e.message);
-    const fallbackJql = `issuetype = "${ISSUE_TYPE}" ORDER BY created DESC`;
-    issues = await searchAll(fallbackJql, ['summary', 'status', 'duedate', 'assignee', 'priority', mapping['site']]);
+    issues = await searchAll(jql, ['summary', 'status', 'duedate', 'assignee', 'priority', mapping.site]);
+  } catch {
+    console.warn('getSiteTasks search failed; using the Protocol Deviation fallback.');
+    const fallbackJql = `project = CLIN AND issuetype = "${escapeJql(config.deviationIssueType)}" ORDER BY created DESC`;
+    issues = await searchAll(fallbackJql, ['summary', 'status', 'duedate', 'assignee', 'priority', mapping.site]);
   }
-
-  return issues.slice(0, 15).map(i => {
-    const isDone = i.fields?.status?.statusCategory?.key === 'done';
-    const issueSite = fieldText(i.fields?.[mapping['site']]) || 'Unassigned';
+  return issues.slice(0, 15).map(issue => {
+    const done = issue.fields?.status?.statusCategory?.key === 'done';
+    const issueSite = fieldText(issue.fields?.[mapping.site]) || 'Unassigned';
     return {
-      id: i.key,
-      title: i.fields?.summary || 'Untitled Task',
-      priority: i.fields?.priority?.name || 'Medium',
-      detail: `Site: ${issueSite} | Status: ${i.fields?.status?.name || 'Open'}`,
-      due: i.fields?.duedate ? new Date(i.fields.duedate).toLocaleDateString() : 'Pending schedule',
-      status: i.fields?.status?.name || 'In Progress',
-      ref: i.key,
-      done: isDone,
-      assignee: i.fields?.assignee?.displayName || 'Unassigned'
+      id: issue.key,
+      title: issue.fields?.summary || 'Untitled Task',
+      priority: issue.fields?.priority?.name || 'Medium',
+      detail: `Site: ${issueSite} | Status: ${issue.fields?.status?.name || 'Open'}`,
+      due: issue.fields?.duedate ? new Date(issue.fields.duedate).toLocaleDateString() : 'Pending schedule',
+      status: issue.fields?.status?.name || 'In Progress',
+      ref: issue.key,
+      done,
+      assignee: issue.fields?.assignee?.displayName || 'Unassigned',
     };
   });
 }
 
-/**
- * Resolver: getReports()
- */
 export async function getReports() {
-  console.log('getReports v2');
-  const { mapping } = await getFieldMapping();
-  const issues = await searchAll(`issuetype = "${ISSUE_TYPE}"`, ['created', 'status', mapping['category'], mapping['Root cause'], mapping['site']]);
-
+  const { mapping, config } = await getFieldMapping();
+  const fields = ['created', 'status', mapping.category, mapping.rootCause, mapping.site].filter(Boolean);
+  const issues = await searchAll(
+    `project = CLIN AND issuetype = "${escapeJql(config.deviationIssueType)}"`,
+    fields,
+  );
   const byCategory = {};
   const byRootCause = {};
   const bySite = {};
   const byMonth = {};
-
-  for (const i of issues) {
-    const cat = fieldText(i.fields[mapping['category']]).trim().toLowerCase() || 'unknown';
-    byCategory[cat] = (byCategory[cat] || 0) + 1;
-
-    const rc = fieldText(i.fields[mapping['Root cause']]) || 'Not specified';
-    byRootCause[rc] = (byRootCause[rc] || 0) + 1;
-
-    const s = fieldText(i.fields[mapping['site']]) || 'Unassigned';
-    bySite[s] = (bySite[s] || 0) + 1;
-
-    if (i.fields?.created) {
-      const month = i.fields.created.slice(0, 7);
+  for (const issue of issues) {
+    const category = fieldText(issue.fields[mapping.category]).trim().toLowerCase() || 'unknown';
+    byCategory[category] = (byCategory[category] || 0) + 1;
+    const rootCause = fieldText(issue.fields[mapping.rootCause]) || 'Not specified';
+    byRootCause[rootCause] = (byRootCause[rootCause] || 0) + 1;
+    const site = fieldText(issue.fields[mapping.site]) || 'Unassigned';
+    bySite[site] = (bySite[site] || 0) + 1;
+    if (issue.fields?.created) {
+      const month = issue.fields.created.slice(0, 7);
       byMonth[month] = (byMonth[month] || 0) + 1;
     }
   }
-
-  return {
-    total: issues.length,
-    byCategory,
-    byRootCause,
-    bySite,
-    byMonth
-  };
+  return { total: issues.length, byCategory, byRootCause, bySite, byMonth };
 }
 
 export async function getSiteHistory(site) {

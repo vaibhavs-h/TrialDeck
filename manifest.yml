@@ -78,6 +78,14 @@ modules:
       handler: backend/agent.getDeviation
     - key: save-report-draft-fn
       handler: backend/agent.saveReportDraft
+    - key: deviation-pattern-event
+      handler: backend/issueEvent.handler
+  trigger:
+    - key: deviation-pattern-issue-event
+      function: deviation-pattern-event
+      events:
+        - avi:jira:created:issue
+        - avi:jira:updated:issue
 resources:
   - key: panel
     path: frontend/panel/index.jsx
@@ -85,11 +93,11 @@ resources:
     path: frontend/dashboard/dist
 permissions:
   scopes:
-    - read:jira-work
-    - write:jira-work
-    - read:jira-user
-    - storage:app
-    - read:page:confluence
+    - read:jira-work # Read deviations, linked CAPAs, and Jira issue events.
+    - write:jira-work # Existing issue and comment resolvers create and update Jira records.
+    - read:jira-user # Existing UI resolvers read Jira user and assignee metadata.
+    - storage:app # Store field mappings, per-project aggregates, alerts, and audit entries.
+    - read:page:confluence # Existing report resolvers read Confluence pages.
   content:
     styles:
       - unsafe-inline # needed by recharts inline styles; revisit
