@@ -1,13 +1,13 @@
 import api, { route } from '@forge/api';
 import { kvs } from '@forge/kvs';
-import { ISSUE_TYPE } from '../config/constants';
+import { ISSUE_TYPE } from '../config/constants.js';
 import {
   escapeJql,
   fieldText,
   findCustomFieldId
-} from '../lib/jira';
-import { getResolvedFieldMapping } from '../lib/fields';
-import { getActiveProjectScope } from '../lib/projects';
+} from '../lib/jira.js';
+import { getResolvedFieldMapping } from '../lib/fields.js';
+import { getActiveProjectScope } from '../lib/projects.js';
 
 /**
  * Converts a plain string to simple Atlassian Document Format (ADF)

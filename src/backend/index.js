@@ -1,5 +1,6 @@
-import Resolver from '@forge/resolver';
-export { DISCLAIMER } from './config/constants';
+import ResolverPkg from '@forge/resolver';
+const Resolver = ResolverPkg?.default || ResolverPkg;
+export { DISCLAIMER } from './config/constants.js';
 import {
   getDeviation,
   getRelatedDeviations,
@@ -9,14 +10,14 @@ import {
   getCapas,
   getSiteTasks,
   getReports
-} from './resolvers/deviations';
-import { getDashboard } from './resolvers/dashboard';
+} from './resolvers/deviations.js';
+import { getDashboard } from './resolvers/dashboard.js';
 import {
   getProtocolPages,
   getAmendmentVersions,
   analyzeAmendment,
   createAmendmentTasks
-} from './resolvers/amendments';
+} from './resolvers/amendments.js';
 import {
   getCreateMeta,
   getAssignableUsers,
@@ -29,10 +30,10 @@ import {
   updateDeviation,
   getSettings,
   saveSettings
-} from './resolvers/writes';
-import { queryKnowledgeGraph } from './resolvers/knowledgeGraph';
+} from './resolvers/writes.js';
+import { queryKnowledgeGraph } from './resolvers/knowledgeGraph.js';
 
-import { getActiveProjectScope, setActiveProjectScope } from './lib/projects';
+import { getActiveProjectScope, setActiveProjectScope } from './lib/projects.js';
 
 const resolver = new Resolver();
 

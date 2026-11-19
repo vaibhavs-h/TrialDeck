@@ -1,5 +1,5 @@
 import api, { route } from '@forge/api';
-import { escapeJql, searchAll } from '../lib/jira';
+import { escapeJql, searchAll } from '../lib/jira.js';
 import {
   amendmentLabel,
   amendmentTag,
@@ -8,10 +8,10 @@ import {
   buildTaskDescription,
   defaultDueDate,
   htmlToBlocks,
-} from '../lib/amendmentAnalysis';
-import { getPageMeta, getPageVersionBody, getPageVersions, listPages } from '../services/confluence';
-import { getCreateMeta } from './writes';
-import { getSites } from './deviations';
+} from '../lib/amendmentAnalysis.js';
+import { getPageMeta, getPageVersionBody, getPageVersions, listPages } from '../services/confluence.js';
+import { getCreateMeta } from './writes.js';
+import { getSites } from './deviations.js';
 
 const SUMMARY_MAX = 255;
 const CONCURRENCY = 4;

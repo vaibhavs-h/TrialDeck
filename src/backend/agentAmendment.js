@@ -1,6 +1,7 @@
 import { listPages, getPageMeta, getPageVersions, getPageVersionBody } from './services/confluence.js';
 import { htmlToBlocks, analyzeBlocks, buildPlan, amendmentLabel, defaultDueDate } from './lib/amendmentAnalysis.js';
-import { applyAmendmentPlan, getSites } from './resolvers/amendments.js';
+import { analyzeAmendment, createAmendmentTasks } from './resolvers/amendments.js';
+import { getSites } from './resolvers/deviations.js';
 import { getCreateMeta } from './resolvers/writes.js';
 
 // Helper to resolve page by ID or Title
@@ -208,8 +209,9 @@ export async function createSiteTasks(payload) {
     const pageId = await resolvePageId(pageIdOrTitle);
     if (!pageId) return { error: `Could not find page matching "${pageIdOrTitle}".` };
 
-    // Delegate to existing robust applyAmendmentPlan logic
-    const result = await applyAmendmentPlan({
+    // Delegate to existing robust createAmendmentTasks logic
+    const result = await createAmendmentTasks({
+      approved: true,
       pageId,
       fromVersion: fromVer,
       toVersion: toVer,
